@@ -9,7 +9,7 @@ interface CardProps {
   className?: string
 }
 
-/** The one surface primitive: hairline ring, no shadow, no nesting. */
+/** The one surface primitive: soft border, no heavy shadow, no nesting. */
 export function Card({
   title,
   subtitle,
@@ -20,7 +20,7 @@ export function Card({
 }: CardProps) {
   return (
     <section
-      className={`rounded-xl border bg-[var(--surface-1)] ${className}`}
+      className={`rounded-[22px] border bg-[var(--surface-1)] ${className}`}
       style={{ borderColor: 'var(--border)' }}
     >
       {(title || action) && (
