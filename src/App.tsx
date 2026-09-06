@@ -42,6 +42,8 @@ import { DEFAULT_RETURNS, PRESETS, blendedReturn } from './lib/vehicles'
 
 const DEFAULT_METRO_ID = 'austin-tx'
 
+type View = 'calculator' | 'projection'
+
 const DEFAULTS = {
   metroId: DEFAULT_METRO_ID,
   gross: 150_000,
@@ -62,7 +64,12 @@ const DEFAULTS = {
    so a hand-edited or stale storage entry can never break the first render. */
 const SAVED = loadState()
 
+function viewFromHash(): View {
+  return window.location.hash === '#projection' ? 'projection' : 'calculator'
+}
+
 export default function App() {
+  const [view, setView] = useState<View>(viewFromHash)
   const [metroId, setMetroId] = useState(SAVED.metroId ?? DEFAULTS.metroId)
   const [gross, setGross] = useState(SAVED.gross ?? DEFAULTS.gross)
   const [filingStatus, setFilingStatus] = useState<FilingStatus>(
@@ -104,6 +111,15 @@ export default function App() {
   const [realMode, setRealMode] = useState(SAVED.realMode ?? DEFAULTS.realMode)
 
   const metro = METROS_BY_ID[metroId]
+
+  useEffect(() => {
+    const syncView = () => {
+      setView(viewFromHash())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    window.addEventListener('hashchange', syncView)
+    return () => window.removeEventListener('hashchange', syncView)
+  }, [])
 
   /* Changing metro re-seeds the cost inputs. Doing it here rather than in an
      effect keeps the two pieces of state in step within a single render. */
@@ -187,6 +203,14 @@ export default function App() {
       milestones,
     ],
   )
+
+  const finalProjection = simulation.years[simulation.years.length - 1]
+  const projectedEndingBalance =
+    startingBalance +
+    finalProjection.cumulativeContributions +
+    finalProjection.growth
+  const projectedEndingReal =
+    projectedEndingBalance / (1 + inflationRate) ** horizonYears
 
   useEffect(() => {
     saveState({
@@ -284,7 +308,7 @@ export default function App() {
         className="border-b bg-[var(--surface-1)]"
         style={{ borderColor: 'var(--border)' }}
       >
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
             <Landmark className="size-5 shrink-0 text-[var(--accent)]" />
             <div className="min-w-0">
@@ -297,6 +321,42 @@ export default function App() {
               </p>
             </div>
           </div>
+
+          <nav
+            className="order-3 flex w-full gap-1 rounded-xl border bg-[var(--surface-2)] p-1 sm:order-none sm:w-auto"
+            style={{ borderColor: 'var(--border)' }}
+            aria-label="Calculator sections"
+          >
+            <a
+              href="#"
+              className="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium transition-colors sm:flex-none"
+              style={{
+                background:
+                  view === 'calculator' ? 'var(--surface-raised)' : 'transparent',
+                color:
+                  view === 'calculator'
+                    ? 'var(--text-primary)'
+                    : 'var(--text-secondary)',
+              }}
+            >
+              Calculator
+            </a>
+            <a
+              href="#projection"
+              className="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium transition-colors sm:flex-none"
+              style={{
+                background:
+                  view === 'projection' ? 'var(--surface-raised)' : 'transparent',
+                color:
+                  view === 'projection'
+                    ? 'var(--text-primary)'
+                    : 'var(--text-secondary)',
+              }}
+            >
+              Projection
+            </a>
+          </nav>
+
           <HeaderActions
             onCopySummary={copySummary}
             onDownloadCsv={exportCsv}
@@ -305,222 +365,309 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="space-y-6">
-            <Card
-              title="Location & income"
-              subtitle="Pick a metro and enter what you earn before tax"
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <MetroSelector metroId={metroId} onChange={selectMetro} />
-                <div className="sm:col-span-2">
-                  <IncomeInput
-                    gross={gross}
-                    filingStatus={filingStatus}
-                    onGrossChange={setGross}
-                    onFilingStatusChange={setFilingStatus}
-                  />
+      {view === 'calculator' ? (
+        <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="space-y-6">
+              <Card
+                title="Location & income"
+                subtitle="Pick a metro and enter what you earn before tax"
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <MetroSelector metroId={metroId} onChange={selectMetro} />
+                  <div className="sm:col-span-2">
+                    <IncomeInput
+                      gross={gross}
+                      filingStatus={filingStatus}
+                      onGrossChange={setGross}
+                      onFilingStatusChange={setFilingStatus}
+                    />
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatTile
-                label="Gross monthly"
-                value={usd(gross / 12)}
-                detail={`${usd(gross)} / yr`}
-                icon={<Wallet className="size-3.5" />}
-              />
-              <StatTile
-                label="Net monthly"
-                value={usd(takeHome.netMonthly)}
-                detail={`${usd(takeHome.net)} / yr`}
-                icon={<Wallet className="size-3.5" />}
-                emphasis
-              />
-              <StatTile
-                label="Effective rate"
-                value={percent(takeHome.effectiveRate)}
-                detail="All taxes ÷ gross"
-                icon={<Percent className="size-3.5" />}
-              />
-              <StatTile
-                label="Federal marginal"
-                value={percent(takeHome.federalMarginalRate, 0)}
-                detail="On your next dollar"
-                icon={<TrendingUp className="size-3.5" />}
-              />
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <StatTile
+                  label="Gross monthly"
+                  value={usd(gross / 12)}
+                  detail={`${usd(gross)} / yr`}
+                  icon={<Wallet className="size-3.5" />}
+                />
+                <StatTile
+                  label="Net monthly"
+                  value={usd(takeHome.netMonthly)}
+                  detail={`${usd(takeHome.net)} / yr`}
+                  icon={<Wallet className="size-3.5" />}
+                  emphasis
+                />
+                <StatTile
+                  label="Effective rate"
+                  value={percent(takeHome.effectiveRate)}
+                  detail="All taxes ÷ gross"
+                  icon={<Percent className="size-3.5" />}
+                />
+                <StatTile
+                  label="Federal marginal"
+                  value={percent(takeHome.federalMarginalRate, 0)}
+                  detail="On your next dollar"
+                  icon={<TrendingUp className="size-3.5" />}
+                />
+              </div>
+
+              <Card>
+                <TaxBreakdown takeHome={takeHome} metro={metro} />
+              </Card>
+
+              <Card
+                title="Monthly cost of living"
+                subtitle={`Seeded from ${metro.city} benchmarks — edit any line`}
+                action={
+                  isModified ? (
+                    <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]">
+                      Edited
+                    </span>
+                  ) : undefined
+                }
+              >
+                <CostOfLivingPanel
+                  costs={costs}
+                  metro={metro}
+                  housingTier={housingTier}
+                  isModified={isModified}
+                  onCostChange={updateCost}
+                  onHousingTierChange={selectHousingTier}
+                  onReset={resetCosts}
+                />
+              </Card>
             </div>
 
-            <Card>
-              <TaxBreakdown takeHome={takeHome} metro={metro} />
-            </Card>
-
-            <Card
-              title="Monthly cost of living"
-              subtitle={`Seeded from ${metro.city} benchmarks — edit any line`}
-              action={
-                isModified ? (
-                  <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]">
-                    Edited
-                  </span>
-                ) : undefined
-              }
-            >
-              <CostOfLivingPanel
-                costs={costs}
-                metro={metro}
-                housingTier={housingTier}
-                isModified={isModified}
-                onCostChange={updateCost}
-                onHousingTierChange={selectHousingTier}
-                onReset={resetCosts}
-              />
-            </Card>
-          </div>
-
-          <aside className="lg:sticky lg:top-6 lg:self-start">
-            <Card title="What's left over">
-              <SurplusSummary
-                netMonthly={takeHome.netMonthly}
-                monthlyCost={monthlyCost}
-                surplus={surplus}
-                rate={rate}
-              />
-            </Card>
-          </aside>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="space-y-6">
-            <Card
-              title="Assumptions"
-              icon={<SlidersHorizontal className="size-4 text-[var(--text-muted)]" />}
-            >
-              <div className="space-y-4">
-                <SliderField
-                  id="wage-growth"
-                  label="Annual wage growth"
-                  hint="Baseline raise, before milestones"
-                  value={wageGrowth * 100}
-                  min={0}
-                  max={12}
-                  step={0.1}
-                  suffix="%"
-                  onChange={(v) => setWageGrowth(v / 100)}
+            <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+              <Card title="What's left over">
+                <SurplusSummary
+                  netMonthly={takeHome.netMonthly}
+                  monthlyCost={monthlyCost}
+                  surplus={surplus}
+                  rate={rate}
                 />
-                <SliderField
-                  id="inflation"
-                  label="Inflation"
-                  hint="Grows costs and deflates real values"
-                  value={inflationRate * 100}
-                  min={0}
-                  max={8}
-                  step={0.1}
-                  suffix="%"
-                  onChange={(v) => setInflationRate(v / 100)}
-                />
-                <SliderField
-                  id="horizon"
-                  label="Projection horizon"
-                  value={horizonYears}
-                  min={1}
-                  max={30}
-                  step={1}
-                  suffix="y"
-                  decimals={0}
-                  onChange={(v) => setHorizonYears(Math.round(v))}
-                />
-              </div>
-            </Card>
+              </Card>
 
-            <Card
-              title="Investment allocation"
-              icon={<PiggyBank className="size-4 text-[var(--text-muted)]" />}
-            >
-              <AllocationPanel
-                weights={weights}
-                returns={returns}
-                startingBalance={startingBalance}
-                onWeightsChange={setWeights}
-                onReturnsChange={setReturns}
-                onStartingBalanceChange={setStartingBalance}
-              />
-            </Card>
-
-            <Card>
-              <MilestonesPanel
-                milestones={milestones}
-                horizonYears={horizonYears}
-                onChange={setMilestones}
-              />
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card
-              title="Portfolio projection"
-              subtitle={`${percent(annualReturn, 2)} blended return · ${horizonYears}-year horizon`}
-              icon={<ChartSpline className="size-4 text-[var(--text-muted)]" />}
-              action={
-                <div
-                  className="flex shrink-0 gap-1 rounded-lg border bg-[var(--surface-2)] p-0.5"
-                  style={{ borderColor: 'var(--border)' }}
-                >
-                  {[
-                    { value: false, label: 'Nominal' },
-                    { value: true, label: 'Real' },
-                  ].map((option) => (
-                    <button
-                      key={option.label}
-                      type="button"
-                      aria-pressed={realMode === option.value}
-                      onClick={() => setRealMode(option.value)}
-                      className="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-                      style={{
-                        background:
-                          realMode === option.value
-                            ? 'var(--surface-raised)'
-                            : 'transparent',
-                        color:
-                          realMode === option.value
-                            ? 'var(--text-primary)'
-                            : 'var(--text-secondary)',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+              <a
+                href="#projection"
+                className="block rounded-xl border bg-[var(--surface-1)] p-5 text-decoration-none transition-transform hover:-translate-y-0.5"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                  Next step
                 </div>
-              }
-            >
-              <ProjectionChart
+                <div className="mt-2 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+                  Build a long-term projection
+                </div>
+                <p className="mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">
+                  Model investing, wage growth, inflation, milestones, and how
+                  this monthly surplus compounds over time.
+                </p>
+                <div className="mt-4 text-sm font-semibold text-[var(--accent)]">
+                  Open projection →
+                </div>
+              </a>
+            </aside>
+          </div>
+        </main>
+      ) : (
+        <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+          <section className="rounded-2xl border bg-[var(--surface-1)] p-5 sm:p-6" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                  Long-term projection
+                </div>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-3xl">
+                  What does {usd(Math.max(0, surplus))} a month become?
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
+                  Starting from your {metro.city} budget, adjust how your income,
+                  costs, investments, and major life changes evolve over time.
+                </p>
+              </div>
+              <a
+                href="#"
+                className="rounded-lg border px-3 py-2 text-xs font-medium text-[var(--text-secondary)] no-underline"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                ← Back to calculator
+              </a>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="rounded-xl bg-[var(--surface-2)] p-4">
+                <div className="text-xs text-[var(--text-muted)]">Starting metro</div>
+                <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {metro.city}
+                </div>
+                <div className="mt-1 text-xs text-[var(--text-secondary)]">
+                  {percent(rate)} savings rate
+                </div>
+              </div>
+              <div className="rounded-xl bg-[var(--surface-2)] p-4">
+                <div className="text-xs text-[var(--text-muted)]">Monthly surplus</div>
+                <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {usd(surplus)}
+                </div>
+                <div className="mt-1 text-xs text-[var(--text-secondary)]">
+                  After taxes and living costs
+                </div>
+              </div>
+              <div className="rounded-xl bg-[var(--surface-2)] p-4">
+                <div className="text-xs text-[var(--text-muted)]">Blended return</div>
+                <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {percent(annualReturn, 2)}
+                </div>
+                <div className="mt-1 text-xs text-[var(--text-secondary)]">
+                  Based on your allocation
+                </div>
+              </div>
+              <div className="rounded-xl bg-[var(--surface-2)] p-4">
+                <div className="text-xs text-[var(--text-muted)]">Projected balance</div>
+                <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {usd(realMode ? projectedEndingReal : projectedEndingBalance)}
+                </div>
+                <div className="mt-1 text-xs text-[var(--text-secondary)]">
+                  Year {horizonYears} · {realMode ? 'today’s dollars' : 'nominal'}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+            <div className="space-y-6">
+              <Card
+                title="Assumptions"
+                icon={<SlidersHorizontal className="size-4 text-[var(--text-muted)]" />}
+              >
+                <div className="space-y-4">
+                  <SliderField
+                    id="wage-growth"
+                    label="Annual wage growth"
+                    hint="Baseline raise, before milestones"
+                    value={wageGrowth * 100}
+                    min={0}
+                    max={12}
+                    step={0.1}
+                    suffix="%"
+                    onChange={(v) => setWageGrowth(v / 100)}
+                  />
+                  <SliderField
+                    id="inflation"
+                    label="Inflation"
+                    hint="Grows costs and deflates real values"
+                    value={inflationRate * 100}
+                    min={0}
+                    max={8}
+                    step={0.1}
+                    suffix="%"
+                    onChange={(v) => setInflationRate(v / 100)}
+                  />
+                  <SliderField
+                    id="horizon"
+                    label="Projection horizon"
+                    value={horizonYears}
+                    min={1}
+                    max={30}
+                    step={1}
+                    suffix="y"
+                    decimals={0}
+                    onChange={(v) => setHorizonYears(Math.round(v))}
+                  />
+                </div>
+              </Card>
+
+              <Card
+                title="Investment allocation"
+                icon={<PiggyBank className="size-4 text-[var(--text-muted)]" />}
+              >
+                <AllocationPanel
+                  weights={weights}
+                  returns={returns}
+                  startingBalance={startingBalance}
+                  onWeightsChange={setWeights}
+                  onReturnsChange={setReturns}
+                  onStartingBalanceChange={setStartingBalance}
+                />
+              </Card>
+
+              <Card>
+                <MilestonesPanel
+                  milestones={milestones}
+                  horizonYears={horizonYears}
+                  onChange={setMilestones}
+                />
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card
+                title="Portfolio projection"
+                subtitle={`${percent(annualReturn, 2)} blended return · ${horizonYears}-year horizon`}
+                icon={<ChartSpline className="size-4 text-[var(--text-muted)]" />}
+                action={
+                  <div
+                    className="flex shrink-0 gap-1 rounded-lg border bg-[var(--surface-2)] p-0.5"
+                    style={{ borderColor: 'var(--border)' }}
+                  >
+                    {[
+                      { value: false, label: 'Nominal' },
+                      { value: true, label: 'Real' },
+                    ].map((option) => (
+                      <button
+                        key={option.label}
+                        type="button"
+                        aria-pressed={realMode === option.value}
+                        onClick={() => setRealMode(option.value)}
+                        className="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+                        style={{
+                          background:
+                            realMode === option.value
+                              ? 'var(--surface-raised)'
+                              : 'transparent',
+                          color:
+                            realMode === option.value
+                              ? 'var(--text-primary)'
+                              : 'var(--text-secondary)',
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                }
+              >
+                <ProjectionChart
+                  years={simulation.years}
+                  startingBalance={startingBalance}
+                  inflationRate={inflationRate}
+                  realMode={realMode}
+                />
+                {simulation.deficitYears.length > 0 && (
+                  <p className="mt-3 text-xs text-[var(--status-critical)]">
+                    {simulation.deficitYears.length} deficit{' '}
+                    {simulation.deficitYears.length === 1 ? 'year' : 'years'} (
+                    {simulation.deficitYears.slice(0, 6).join(', ')}
+                    {simulation.deficitYears.length > 6 ? '…' : ''}) contributed
+                    nothing.
+                  </p>
+                )}
+              </Card>
+
+              <ProjectionSummary
                 years={simulation.years}
                 startingBalance={startingBalance}
                 inflationRate={inflationRate}
                 realMode={realMode}
               />
-              {simulation.deficitYears.length > 0 && (
-                <p className="mt-3 text-xs text-[var(--status-critical)]">
-                  {simulation.deficitYears.length} deficit{' '}
-                  {simulation.deficitYears.length === 1 ? 'year' : 'years'} (
-                  {simulation.deficitYears.slice(0, 6).join(', ')}
-                  {simulation.deficitYears.length > 6 ? '…' : ''}) contributed
-                  nothing.
-                </p>
-              )}
-            </Card>
-
-            <ProjectionSummary
-              years={simulation.years}
-              startingBalance={startingBalance}
-              inflationRate={inflationRate}
-              realMode={realMode}
-            />
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   )
 }
