@@ -1,4 +1,4 @@
-# Take-Home Savings Calculator (Built with Claude Code)
+# Take-Home Savings Calculatorm (Built with Claude)
 
 An interactive single-page web application for modeling what a US salary actually leaves you with. Pick a metro, enter a gross salary, and it computes take-home pay after 2026 federal, state, local, and FICA taxes, subtracts an editable cost-of-living basket, and projects the resulting surplus forward up to 30 years with career and lifestyle milestones.
 
@@ -43,4 +43,64 @@ npm install
 
 # Start development server
 npm run dev
+```
 
+### Available Scripts
+
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Runs the Vite dev server at `http://localhost:5173` |
+| `npm test` | Runs the full Vitest suite (138 tests) |
+| `npm run typecheck` | Typechecks the codebase (`tsc -b --noEmit`) |
+| `npm run lint` | Lints files with oxlint |
+| `npm run build` | Compiles production assets into `dist/` |
+| `npm run preview` | Locally serves the built production bundle |
+
+---
+
+## Financial Methodology
+
+### 1. Take-Home Pay Deduction Order
+Gross wages are reduced sequentially by:
+1. **Federal Income Tax:** 2026 marginal brackets (Single, Married Filing Jointly, Head of Household) applied after the 2026 standard deduction ($16,100 / $32,200 / $24,150).
+2. **FICA:** 6.2% Social Security up to the $184,500 wage base, plus 1.45% Medicare (uncapped) and the 0.9% Additional Medicare surtax above statutory thresholds ($200k Single / $250k Joint).
+3. **State Income Tax:** State-specific tax specifications (progressive brackets, flat rate, or zero-tax states).
+4. **Local / Municipal Tax:** Resident wage taxes modeled for 13 specific cities (e.g., NYC, Philadelphia, Baltimore, Detroit, St. Louis).
+
+### 2. Housing Tiers
+Benchmarks anchor on the metro's 1-bedroom rent:
+* **Roommate Share:** 55%–60% of 1BR (scaled by market tier to reflect multi-bed splits).
+* **Studio (0-BR):** 85% of 1BR.
+* **1-Bedroom:** Anchor benchmark.
+* **2-Bedroom Solo:** 135% of 1BR.
+
+### 3. Dynamic Compounding & Milestones
+* **Surplus:** Monthly Surplus = Net Monthly Pay - Total Monthly Living Expenses
+* **Deficit Rule:** Deficit years contribute $0 to the investment portfolio rather than artificially liquidating principal.
+* **Compounding:** Compounded monthly as an annuity-due (contributions invested at period start).
+
+---
+
+## Project Structure
+
+```text
+src/
+├── data/
+│   ├── types.ts          # Domain definitions (FilingStatus, HousingTier, Metro)
+│   ├── metros.ts         # 45 metro benchmark datasets
+│   ├── taxTables.ts      # 2026 Federal, FICA, and 28 jurisdiction tax specifications
+│   └── metroData.ts      # Public barrel export
+├── lib/
+│   ├── tax.ts            # Pure tax bracket, FICA, and state/local logic
+│   ├── simulation.ts     # Multi-year cash flow and compounding engine
+│   ├── forecast.ts       # Fixed-contribution and savings-rate utilities
+│   ├── milestones.ts     # Career and lifestyle event processors
+│   └── persistence.ts    # LocalStorage schema validation
+└── components/           # Modular React UI components
+```
+
+---
+
+## Disclaimer
+
+This software is built for informational exploration and personal financial modeling, not as formal tax or investment advice. Living expenses are benchmark estimates intended for relative metro-to-metro comparisons.
