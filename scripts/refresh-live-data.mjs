@@ -14,24 +14,19 @@ const LEGACY_GROCERY_REFERENCE = 480
 const ZILLOW_URL =
   'https://files.zillowstatic.com/research/public_csvs/zori/Metro_zori_uc_sfrcondomfr_sm_month.csv'
 
-const BLS_FILES = {
-  allItems: 'https://download.bls.gov/pub/time.series/cu/cu.data.1.AllItems',
-  groceries:
-    'https://download.bls.gov/pub/time.series/cu/cu.data.11.USFoodBeverage',
-  utilities:
-    'https://download.bls.gov/pub/time.series/cu/cu.data.12.USHousing',
-  transport:
-    'https://download.bls.gov/pub/time.series/cu/cu.data.14.USTransportation',
-  discretionary:
-    'https://download.bls.gov/pub/time.series/cu/cu.data.16.USRecreation',
-}
-
+// FRED mirrors these BLS CPI series as public CSV downloads. This route does
+// not require a key or a metered API account, which keeps the scheduled job
+// independent of API quotas while preserving BLS as the underlying source.
 const BLS_SERIES = {
   allItems: 'CUSR0000SA0',
   groceries: 'CUSR0000SAF11',
   utilities: 'CUSR0000SAH2',
   transport: 'CUSR0000SAT',
   discretionary: 'CUSR0000SAR',
+}
+
+function fredCsvUrl(seriesId) {
+  return `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`
 }
 
 /**
@@ -87,12 +82,6 @@ const ZILLOW_METROS = {
   'portland-or': ['Portland', 'OR'],
 }
 
-function monthNumber(period) {
-  if (!/^M\d{2}$/.test(period) || period === 'M13') return null
-  const month = Number(period.slice(1))
-  return month >= 1 && month <= 12 ? month : null
-}
-
 function periodKey(period) {
   return Number(period.slice(0, 4)) * 100 + Number(period.slice(5, 7))
 }
@@ -134,34 +123,6 @@ async function safeSource(label, fn) {
   }
 }
 
-function parseBlsSeries(text, seriesId) {
-  const points = new Map()
-  for (const line of text.split(/\r?\n/)) {
-    if (!line.startsWith(seriesId)) continue
-    const [id, year, period, rawValue] = line.split('\t').map((part) => part.trim())
-    if (id !== seriesId) continue
-    const month = monthNumber(period)
-    const value = Number(rawValue)
-    if (month === null || !Number.isFinite(value) || value <= 0) continue
-    points.set(`${year}-${String(month).padStart(2, '0')}`, value)
-  }
-  if (points.size === 0) throw new Error(`No observations found for ${seriesId}`)
-  return points
-}
-
-function latestPoint(points) {
-  const period = [...points.keys()].sort((a, b) => periodKey(b) - periodKey(a))[0]
-  if (!period) throw new Error('Series has no monthly observations')
-  return { period, value: points.get(period) }
-}
-
-function boundedMultiplier(value, label, min = 0.5, max = 1.5) {
-  if (!Number.isFinite(value) || value < min || value > max) {
-    throw new Error(`${label} multiplier ${value} failed validation`)
-  }
-  return Number(value.toFixed(6))
-}
-
 function parseCsvLine(line) {
   const cells = []
   let cell = ''
@@ -184,6 +145,46 @@ function parseCsvLine(line) {
   }
   cells.push(cell)
   return cells
+}
+
+function parseFredSeries(text, seriesId) {
+  const lines = text.split(/\r?\n/).filter(Boolean)
+  if (lines.length < 2) throw new Error(`FRED CSV for ${seriesId} is empty`)
+
+  const headers = parseCsvLine(lines[0]).map((cell) => cell.trim())
+  const dateIndex = headers.findIndex((header) =>
+    ['DATE', 'observation_date'].includes(header),
+  )
+  const valueIndex = headers.indexOf(seriesId)
+  if (dateIndex < 0 || valueIndex < 0) {
+    throw new Error(`FRED CSV for ${seriesId} has unexpected headers`)
+  }
+
+  const points = new Map()
+  for (const line of lines.slice(1)) {
+    const values = parseCsvLine(line)
+    const date = String(values[dateIndex] ?? '').trim()
+    const value = Number(values[valueIndex])
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+    if (!Number.isFinite(value) || value <= 0) continue
+    points.set(date.slice(0, 7), value)
+  }
+
+  if (points.size === 0) throw new Error(`No observations found for ${seriesId}`)
+  return points
+}
+
+function latestPoint(points) {
+  const period = [...points.keys()].sort((a, b) => periodKey(b) - periodKey(a))[0]
+  if (!period) throw new Error('Series has no monthly observations')
+  return { period, value: points.get(period) }
+}
+
+function boundedMultiplier(value, label, min = 0.5, max = 1.5) {
+  if (!Number.isFinite(value) || value < min || value > max) {
+    throw new Error(`${label} multiplier ${value} failed validation`)
+  }
+  return Number(value.toFixed(6))
 }
 
 function parseZillow(text) {
@@ -214,33 +215,26 @@ function findZillowRow(rows, regionName, stateName) {
   })
 }
 
-async function refreshBls(existingCosts, nextCosts, existingLive, nextLive) {
-  const [allItemsText, groceriesText, utilitiesText, transportText, discretionaryText] =
-    await Promise.all([
-      fetchText(BLS_FILES.allItems),
-      fetchText(BLS_FILES.groceries),
-      fetchText(BLS_FILES.utilities),
-      fetchText(BLS_FILES.transport),
-      fetchText(BLS_FILES.discretionary),
-    ])
+async function refreshPriceIndexes(existingCosts, nextCosts, nextLive) {
+  const entries = await Promise.all(
+    Object.entries(BLS_SERIES).map(async ([key, seriesId]) => {
+      const text = await fetchText(fredCsvUrl(seriesId))
+      return [key, parseFredSeries(text, seriesId)]
+    }),
+  )
+  const series = Object.fromEntries(entries)
 
-  const allItems = parseBlsSeries(allItemsText, BLS_SERIES.allItems)
-  const groceries = parseBlsSeries(groceriesText, BLS_SERIES.groceries)
-  const utilities = parseBlsSeries(utilitiesText, BLS_SERIES.utilities)
-  const transport = parseBlsSeries(transportText, BLS_SERIES.transport)
-  const discretionary = parseBlsSeries(discretionaryText, BLS_SERIES.discretionary)
-
-  const latestAll = latestPoint(allItems)
+  const latestAll = latestPoint(series.allItems)
   const priorYearPeriod = `${Number(latestAll.period.slice(0, 4)) - 1}${latestAll.period.slice(4)}`
-  const priorYearValue = allItems.get(priorYearPeriod)
+  const priorYearValue = series.allItems.get(priorYearPeriod)
   if (!priorYearValue) throw new Error(`Missing prior-year CPI observation ${priorYearPeriod}`)
   const inflationRate = latestAll.value / priorYearValue - 1
   if (!Number.isFinite(inflationRate) || inflationRate < -0.1 || inflationRate > 0.25) {
     throw new Error(`CPI inflation ${inflationRate} failed validation`)
   }
 
-  const latestGroceries = latestPoint(groceries)
-  const groceryBase = groceries.get(USDA_GROCERY_BASE_PERIOD)
+  const latestGroceries = latestPoint(series.groceries)
+  const groceryBase = series.groceries.get(USDA_GROCERY_BASE_PERIOD)
   if (!groceryBase) throw new Error(`Missing food CPI baseline ${USDA_GROCERY_BASE_PERIOD}`)
   const currentUsdaModerate =
     USDA_MODERATE_SINGLE_ADULT_BASE * (latestGroceries.value / groceryBase)
@@ -252,9 +246,9 @@ async function refreshBls(existingCosts, nextCosts, existingLive, nextLive) {
   )
 
   const categorySeries = [
-    ['utilities', utilities],
-    ['transport', transport],
-    ['discretionary', discretionary],
+    ['utilities', series.utilities],
+    ['transport', series.transport],
+    ['discretionary', series.discretionary],
   ]
 
   const multipliers = { ...existingCosts.categoryMultipliers, groceries: groceryMultiplier }
@@ -276,7 +270,8 @@ async function refreshBls(existingCosts, nextCosts, existingLive, nextLive) {
   nextLive.inflationLabel = 'Latest available'
   nextLive.inflationRate = Number(inflationRate.toFixed(4))
   nextLive.inflationPeriod = formatPeriod(latestAll.period)
-  nextLive.inflationSource = 'U.S. Bureau of Labor Statistics CPI-U bulk data'
+  nextLive.inflationSource =
+    'U.S. Bureau of Labor Statistics CPI-U via FRED public CSV'
   nextLive.costIndexPeriod = formatPeriod(latestAll.period)
 
   return latestAll.period
@@ -340,21 +335,21 @@ async function main() {
   const nextLive = structuredClone(existingLive)
   const nextCosts = structuredClone(existingCosts)
 
-  const blsPeriod = await safeSource('BLS bulk data', () =>
-    refreshBls(existingCosts, nextCosts, existingLive, nextLive),
+  const pricePeriod = await safeSource('BLS CPI via FRED CSV', () =>
+    refreshPriceIndexes(existingCosts, nextCosts, nextLive),
   )
   const zillowPeriod = await safeSource('Zillow ZORI', () =>
     refreshZillow(existingCosts, nextCosts, nextLive),
   )
 
-  if (!blsPeriod && !zillowPeriod) {
+  if (!pricePeriod && !zillowPeriod) {
     throw new Error('All external refreshes failed; last-known-good files were left untouched')
   }
 
   const now = new Date()
   const versionParts = [
     zillowPeriod ? `zori-${zillowPeriod}` : `zori-${existingCosts.housingPeriod}`,
-    blsPeriod ? `bls-${blsPeriod}` : `bls-${existingLive.inflationPeriod}`,
+    pricePeriod ? `bls-${pricePeriod}` : `bls-${existingLive.inflationPeriod}`,
   ]
   nextCosts.dataVersion = versionParts.join('_')
   nextCosts.generatedAt = now.toISOString().slice(0, 10)
@@ -388,7 +383,7 @@ async function main() {
   }
 
   console.log(
-    `Refresh complete. BLS: ${blsPeriod ?? 'fallback'}; Zillow: ${zillowPeriod ?? 'fallback'}.`,
+    `Refresh complete. BLS/FRED: ${pricePeriod ?? 'fallback'}; Zillow: ${zillowPeriod ?? 'fallback'}.`,
   )
 }
 
