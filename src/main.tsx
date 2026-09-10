@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { CompareModal } from './components/CompareModal.tsx'
+import { DataFreshness } from './components/DataFreshness.tsx'
 
 function Root() {
   const [hash, setHash] = useState(() => window.location.hash)
@@ -37,6 +38,7 @@ function Root() {
   return (
     <>
       <App />
+      <DataFreshness />
       {!onProjection && showCompare && (
         <CompareModal onClose={() => setShowCompare(false)} />
       )}
