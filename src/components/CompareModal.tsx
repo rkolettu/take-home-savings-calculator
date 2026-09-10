@@ -90,11 +90,19 @@ export function CompareModal({ onClose }: CompareModalProps) {
     [scenarios],
   )
 
-  const bestSurplus = Math.max(...results.map((result) => result.surplus))
   const rankedResults = [...results].sort((a, b) => b.surplus - a.surplus)
   const bestResult = rankedResults[0]
-  const nextBestSurplus = rankedResults[1]?.surplus ?? bestSurplus
-  const monthlyAdvantage = Math.max(0, bestSurplus - nextBestSurplus)
+  const secondResult = rankedResults[1]
+  const worstResult = rankedResults[rankedResults.length - 1]
+  const bestSurplus = bestResult?.surplus ?? 0
+  const bestVsSecond =
+    bestResult && secondResult ? Math.max(0, bestResult.surplus - secondResult.surplus) : 0
+  const bestVsWorst =
+    bestResult && worstResult ? Math.max(0, bestResult.surplus - worstResult.surplus) : 0
+
+  function rankForScenario(id: number) {
+    return rankedResults.findIndex((result) => result.scenario.id === id) + 1
+  }
 
   function updateScenario(id: number, patch: Partial<CompareScenario>) {
     setScenarios((current) =>
@@ -190,49 +198,110 @@ export function CompareModal({ onClose }: CompareModalProps) {
                 background: 'var(--accent-soft)',
               }}
             >
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="rounded-xl bg-[var(--surface-raised)] p-2.5 text-[var(--accent)]">
-                    <PiggyBank className="size-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.09em] text-[var(--accent)]">
-                      Best monthly savings
-                    </div>
-                    <div className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-primary)]">
-                      {bestResult.metro.city}, {bestResult.metro.stateCode} comes out ahead
-                    </div>
-                    <p className="mt-1 text-sm leading-5 text-[var(--text-secondary)]">
-                      {monthlyAdvantage > 0
-                        ? `This scenario leaves you with ${usd(monthlyAdvantage)} more each month than the next-best option.`
-                        : 'The top scenarios are tied for monthly savings.'}
-                    </p>
-                  </div>
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="rounded-xl bg-[var(--surface-raised)] p-2.5 text-[var(--accent)]">
+                  <PiggyBank className="size-5" />
                 </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.09em] text-[var(--accent)]">
+                    Best monthly savings
+                  </div>
+                  <div className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-primary)]">
+                    {bestResult.metro.city}, {bestResult.metro.stateCode} comes out ahead
+                  </div>
+                  <p className="mt-1 text-sm leading-5 text-[var(--text-secondary)]">
+                    {results.length === 3 && secondResult && worstResult
+                      ? `${bestResult.metro.city} leaves you with ${usd(bestVsSecond)} more per month than ${secondResult.metro.city}, and ${usd(bestVsWorst)} more per month than ${worstResult.metro.city}.`
+                      : bestVsSecond > 0
+                        ? `This scenario leaves you with ${usd(bestVsSecond)} more each month than the other option.`
+                        : 'The top scenarios are tied for monthly savings.'}
+                  </p>
+                </div>
+              </div>
 
-                <div className="min-w-[150px] rounded-xl bg-[var(--surface-raised)] px-4 py-3 text-right">
+              {results.length === 3 && secondResult && worstResult ? (
+                <>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    {rankedResults.map((result, index) => {
+                      const rankLabel = index === 0 ? 'Best' : index === 1 ? 'Second' : 'Worst'
+                      return (
+                        <div
+                          key={result.scenario.id}
+                          className="rounded-xl bg-[var(--surface-raised)] px-3 py-3"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                              {index + 1}. {rankLabel}
+                            </span>
+                            <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">
+                              {usd(result.surplus)}/mo
+                            </span>
+                          </div>
+                          <div className="mt-1 truncate text-sm font-semibold text-[var(--text-primary)]">
+                            {result.metro.city}, {result.metro.stateCode}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl border bg-[var(--surface-raised)] px-4 py-3" style={{ borderColor: 'color-mix(in srgb, var(--accent) 24%, var(--border))' }}>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                        Best vs second
+                      </div>
+                      <div className="mt-1 text-xl font-semibold tabular-nums text-[var(--accent)]">
+                        +{usd(bestVsSecond)} / month
+                      </div>
+                      <div className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                        +{usd(bestVsSecond * 12)} / year vs {secondResult.metro.city}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border bg-[var(--surface-raised)] px-4 py-3" style={{ borderColor: 'color-mix(in srgb, var(--accent) 24%, var(--border))' }}>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                        Best vs worst
+                      </div>
+                      <div className="mt-1 text-xl font-semibold tabular-nums text-[var(--accent)]">
+                        +{usd(bestVsWorst)} / month
+                      </div>
+                      <div className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                        +{usd(bestVsWorst * 12)} / year vs {worstResult.metro.city}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 max-w-[190px] rounded-xl bg-[var(--surface-raised)] px-4 py-3">
                   <div className="text-2xl font-semibold tracking-tight tabular-nums text-[var(--accent)]">
-                    {monthlyAdvantage > 0
-                      ? `+${usd(monthlyAdvantage)}`
-                      : usd(bestResult.surplus)}
+                    {bestVsSecond > 0 ? `+${usd(bestVsSecond)}` : usd(bestResult.surplus)}
                   </div>
                   <div className="mt-0.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {monthlyAdvantage > 0 ? 'more / month' : 'left / month'}
+                    {bestVsSecond > 0 ? 'more / month' : 'left / month'}
                   </div>
-                  {monthlyAdvantage > 0 && (
+                  {bestVsSecond > 0 && (
                     <div className="mt-1 text-[11px] tabular-nums text-[var(--text-muted)]">
-                      {usd(monthlyAdvantage * 12)} more / year
+                      {usd(bestVsSecond * 12)} more / year
                     </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {results.map((result, index) => {
               const { scenario, metro, takeHome, monthlyCost, surplus, rate, status } = result
-              const isBest = results.length > 1 && surplus === bestSurplus
+              const rank = rankForScenario(scenario.id)
+              const rankLabel =
+                results.length === 3
+                  ? rank === 1
+                    ? 'Best'
+                    : rank === 2
+                      ? 'Second'
+                      : 'Worst'
+                  : rank === 1
+                    ? 'Best'
+                    : undefined
 
               return (
                 <Card
@@ -241,9 +310,17 @@ export function CompareModal({ onClose }: CompareModalProps) {
                   subtitle={`${metro.city}, ${metro.stateCode}`}
                   action={
                     <div className="flex items-center gap-2">
-                      {isBest && (
-                        <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
-                          Best
+                      {rankLabel && (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                          style={{
+                            background:
+                              rank === 1 ? 'var(--accent-soft)' : 'var(--surface-2)',
+                            color:
+                              rank === 1 ? 'var(--accent)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {rank}. {rankLabel}
                         </span>
                       )}
                       {scenarios.length > 2 && (
@@ -308,9 +385,9 @@ export function CompareModal({ onClose }: CompareModalProps) {
                           className="w-full rounded-lg border bg-[var(--surface-2)] px-2.5 py-2.5 text-xs font-medium text-[var(--text-primary)]"
                           style={{ borderColor: 'var(--border)' }}
                         >
-                          {FILING_STATUSES.map((status) => (
-                            <option key={status} value={status}>
-                              {FILING_STATUS_LABELS[status]}
+                          {FILING_STATUSES.map((filingStatusOption) => (
+                            <option key={filingStatusOption} value={filingStatusOption}>
+                              {FILING_STATUS_LABELS[filingStatusOption]}
                             </option>
                           ))}
                         </select>
