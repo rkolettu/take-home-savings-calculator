@@ -6,7 +6,18 @@ import {
   ShoppingBasket,
   TrendingUp,
 } from 'lucide-react'
+import { USE_AUTOMATIC_COST_UPDATES } from '../data/costDataConfig'
 import liveData from '../data/liveData.json'
+import sourcedCosts from '../data/sourcedCosts.json'
+
+const multipliers = [
+  ...Object.values(sourcedCosts.categoryMultipliers),
+  ...Object.values(sourcedCosts.housingMultipliers),
+]
+const hasActiveMultiplier = multipliers.some(
+  (multiplier) => Math.abs(multiplier - 1) > 0.0001,
+)
+const sourcedDataActive = USE_AUTOMATIC_COST_UPDATES && hasActiveMultiplier
 
 const items = [
   {
@@ -17,14 +28,14 @@ const items = [
   },
   {
     label: 'Rent',
-    value: liveData.rentEstimates,
-    detail: 'Zillow ZORI',
+    value: sourcedDataActive ? sourcedCosts.housingPeriod : liveData.rentEstimates,
+    detail: sourcedDataActive ? 'Sourced-data index active' : liveData.rentSource,
     icon: Home,
   },
   {
     label: 'Living-cost data',
-    value: liveData.costIndexPeriod,
-    detail: 'EIA + USDA + BLS/FRED',
+    value: sourcedDataActive ? liveData.costIndexPeriod : liveData.costModel,
+    detail: sourcedDataActive ? 'EIA + USDA + BLS/FRED' : 'Modeled category benchmarks',
     icon: ShoppingBasket,
   },
   {
@@ -90,10 +101,10 @@ export function DataFreshness() {
         >
           <div className="space-y-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
             <p>
-              Living-cost defaults are cached, versioned benchmarks rather than live browser API calls. Housing keeps each metro’s housing-tier baseline and moves it with Zillow ZORI. Groceries use a USDA Moderate-Cost single-adult benchmark adjusted with BLS food-at-home prices. Electricity now uses U.S. EIA residential average monthly bills by state, scaled to represent a single renter and brought forward with current utility-price data; water, gas, trash, and home internet remain modeled from each metro’s utility baseline. Transportation and discretionary benchmarks retain their metro-specific baselines and are updated with relevant BLS price indexes via FRED. If a source is unavailable or fails validation, the last known good data remains in use.
+              Current living-cost defaults are benchmark estimates, not live browser API results. One-bedroom rent anchors use August 2026 median asking-rent benchmarks where available; five uncovered metros use an explicitly labelled interpolation. Utilities, groceries, transportation, and discretionary spending remain modeled category benchmarks. A generated sourced-cost indexing layer is retained in the repository but is disabled until it can add validated movement beyond its base period without implying that it establishes the underlying price level.
             </p>
             <p>
-              Tax rules are versioned separately and are not automatically inferred from new legislation. The renter adjustment and non-electric utility share are model assumptions, not reported EIA statistics. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.
+              Tax rules are versioned separately and are not automatically inferred from new legislation. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.
             </p>
             <p>
               Educational estimates only — not tax, investment, legal, or financial advice. Actual results may differ based on credits, deductions, benefits, withholding, residency, local rules, personal spending, and future tax-law changes. Verify important decisions with official sources or a qualified professional.
