@@ -1,0 +1,441 @@
+import { ArrowLeftRight, Plus, Trash2, Wallet, X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import {
+  FILING_STATUS_LABELS,
+  FILING_STATUSES,
+  HOUSING_TIER_LABELS,
+  HOUSING_TIERS,
+  METROS,
+  METROS_BY_ID,
+} from '../data/metroData'
+import type { FilingStatus, HousingTier } from '../data/metroData'
+import { costsFromMetro, totalCost } from '../lib/costs'
+import { savingsRate } from '../lib/forecast'
+import { number, parseCurrency, percent, usd } from '../lib/format'
+import { loadState } from '../lib/persistence'
+import { computeTakeHome } from '../lib/tax'
+import { Card } from './Card'
+import { MetroSelector } from './MetroSelector'
+
+interface CompareScenario {
+  id: number
+  metroId: string
+  gross: number
+  filingStatus: FilingStatus
+  housingTier: HousingTier
+}
+
+interface CompareModalProps {
+  onClose: () => void
+}
+
+function makeInitialScenarios(): CompareScenario[] {
+  const saved = loadState()
+  const primaryMetroId =
+    saved.metroId && METROS_BY_ID[saved.metroId] ? saved.metroId : 'austin-tx'
+  const secondaryMetroId =
+    METROS.find((metro) => metro.id !== primaryMetroId)?.id ?? primaryMetroId
+  const gross = saved.gross ?? 120_000
+  const filingStatus = saved.filingStatus ?? 'single'
+  const housingTier = saved.housingTier ?? 'roommate'
+
+  return [
+    { id: 1, metroId: primaryMetroId, gross, filingStatus, housingTier },
+    { id: 2, metroId: secondaryMetroId, gross, filingStatus, housingTier },
+  ]
+}
+
+function statusForRate(rate: number) {
+  if (rate < 0) return { label: 'Deficit', color: 'var(--status-critical)' }
+  if (rate < 0.2) return { label: 'Watch out', color: 'var(--status-warning)' }
+  if (rate <= 0.5) return { label: 'Healthy', color: 'var(--status-good)' }
+  return { label: 'Very high savings', color: 'var(--accent)' }
+}
+
+export function CompareModal({ onClose }: CompareModalProps) {
+  const [scenarios, setScenarios] = useState<CompareScenario[]>(makeInitialScenarios)
+  const nextId = useRef(3)
+
+  const results = useMemo(
+    () =>
+      scenarios.map((scenario) => {
+        const metro = METROS_BY_ID[scenario.metroId]
+        const takeHome = computeTakeHome({
+          gross: scenario.gross,
+          filingStatus: scenario.filingStatus,
+          stateCode: metro.stateCode,
+          localIncomeTaxRate: metro.localIncomeTaxRate,
+        })
+        const monthlyCost = totalCost(costsFromMetro(metro, scenario.housingTier))
+        const surplus = takeHome.netMonthly - monthlyCost
+        const rate = savingsRate(takeHome.netMonthly, monthlyCost)
+
+        return {
+          scenario,
+          metro,
+          takeHome,
+          monthlyCost,
+          surplus,
+          rate,
+          status: statusForRate(rate),
+        }
+      }),
+    [scenarios],
+  )
+
+  const bestSurplus = Math.max(...results.map((result) => result.surplus))
+
+  function updateScenario(id: number, patch: Partial<CompareScenario>) {
+    setScenarios((current) =>
+      current.map((scenario) =>
+        scenario.id === id ? { ...scenario, ...patch } : scenario,
+      ),
+    )
+  }
+
+  function addScenario() {
+    if (scenarios.length >= 3) return
+    const used = new Set(scenarios.map((scenario) => scenario.metroId))
+    const nextMetro = METROS.find((metro) => !used.has(metro.id)) ?? METROS[0]
+    const reference = scenarios[scenarios.length - 1] ?? scenarios[0]
+
+    setScenarios((current) => [
+      ...current,
+      {
+        id: nextId.current++,
+        metroId: nextMetro.id,
+        gross: reference?.gross ?? 120_000,
+        filingStatus: reference?.filingStatus ?? 'single',
+        housingTier: reference?.housingTier ?? 'roommate',
+      },
+    ])
+  }
+
+  function removeScenario(id: number) {
+    if (scenarios.length <= 2) return
+    setScenarios((current) => current.filter((scenario) => scenario.id !== id))
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/35 p-3 backdrop-blur-[2px] sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Compare metro and income scenarios"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <div
+        className="mx-auto max-w-6xl overflow-hidden rounded-[24px] border bg-[var(--page)] shadow-2xl"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <div
+          className="sticky top-0 z-30 flex flex-wrap items-start justify-between gap-4 border-b bg-[var(--surface-1)] px-4 py-4 sm:px-6"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+              <ArrowLeftRight className="size-4" />
+              Quick comparison
+            </div>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">
+              Compare where your paycheck goes further
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)] sm:text-sm">
+              Up to three metros, incomes, filing statuses, and housing setups. Current-year snapshot only — no projections.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={addScenario}
+              disabled={scenarios.length >= 3}
+              className="flex items-center gap-1.5 rounded-lg border bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-45"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <Plus className="size-4" />
+              {scenarios.length >= 3 ? '3 max' : 'Add scenario'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close comparison"
+              className="rounded-lg border bg-[var(--surface-2)] p-2 text-[var(--text-secondary)]"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-4 sm:p-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {results.map((result, index) => {
+              const { scenario, metro, takeHome, monthlyCost, surplus, rate, status } = result
+              const isBest = results.length > 1 && surplus === bestSurplus
+
+              return (
+                <Card
+                  key={scenario.id}
+                  title={`Scenario ${index + 1}`}
+                  subtitle={`${metro.city}, ${metro.stateCode}`}
+                  action={
+                    <div className="flex items-center gap-2">
+                      {isBest && (
+                        <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+                          Most left over
+                        </span>
+                      )}
+                      {scenarios.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeScenario(scenario.id)}
+                          aria-label={`Remove scenario ${index + 1}`}
+                          className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--status-critical)]"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
+                    </div>
+                  }
+                >
+                  <div className="space-y-4">
+                    <MetroSelector
+                      metroId={scenario.metroId}
+                      onChange={(metroId) => updateScenario(scenario.id, { metroId })}
+                    />
+
+                    <div>
+                      <label
+                        htmlFor={`compare-income-${scenario.id}`}
+                        className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]"
+                      >
+                        Gross annual salary
+                      </label>
+                      <div
+                        className="flex items-center rounded-lg border bg-[var(--surface-2)] px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)]"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        <span className="text-sm text-[var(--text-muted)]">$</span>
+                        <input
+                          id={`compare-income-${scenario.id}`}
+                          inputMode="numeric"
+                          value={number(scenario.gross)}
+                          onChange={(event) =>
+                            updateScenario(scenario.id, {
+                              gross: parseCurrency(event.target.value),
+                            })
+                          }
+                          className="w-full bg-transparent px-1.5 py-2.5 text-sm font-medium tabular-nums text-[var(--text-primary)] focus:outline-none"
+                        />
+                        <span className="text-xs text-[var(--text-muted)]">/ year</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
+                          Filing status
+                        </span>
+                        <select
+                          value={scenario.filingStatus}
+                          onChange={(event) =>
+                            updateScenario(scenario.id, {
+                              filingStatus: event.target.value as FilingStatus,
+                            })
+                          }
+                          className="w-full rounded-lg border bg-[var(--surface-2)] px-2.5 py-2.5 text-xs font-medium text-[var(--text-primary)]"
+                          style={{ borderColor: 'var(--border)' }}
+                        >
+                          {FILING_STATUSES.map((status) => (
+                            <option key={status} value={status}>
+                              {FILING_STATUS_LABELS[status]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
+                          Housing
+                        </span>
+                        <select
+                          value={scenario.housingTier}
+                          onChange={(event) =>
+                            updateScenario(scenario.id, {
+                              housingTier: event.target.value as HousingTier,
+                            })
+                          }
+                          className="w-full rounded-lg border bg-[var(--surface-2)] px-2.5 py-2.5 text-xs font-medium text-[var(--text-primary)]"
+                          style={{ borderColor: 'var(--border)' }}
+                        >
+                          {HOUSING_TIERS.map((tier) => (
+                            <option key={tier} value={tier}>
+                              {HOUSING_TIER_LABELS[tier]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div
+                      className="rounded-xl border bg-[var(--surface-2)] p-4"
+                      style={{ borderColor: 'var(--border)' }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-medium text-[var(--text-muted)]">
+                            Monthly left over
+                          </div>
+                          <div
+                            className="mt-1 text-3xl font-semibold tracking-tight tabular-nums"
+                            style={{
+                              color:
+                                surplus < 0
+                                  ? 'var(--status-critical)'
+                                  : 'var(--text-primary)',
+                            }}
+                          >
+                            {usd(surplus)}
+                          </div>
+                        </div>
+                        <Wallet className="size-5 text-[var(--text-muted)]" />
+                      </div>
+
+                      <div
+                        className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t pt-3 text-xs"
+                        style={{ borderColor: 'var(--gridline)' }}
+                      >
+                        <div>
+                          <div className="text-[var(--text-muted)]">Take-home</div>
+                          <div className="mt-0.5 font-semibold tabular-nums text-[var(--text-primary)]">
+                            {usd(takeHome.netMonthly)}/mo
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[var(--text-muted)]">Baseline costs</div>
+                          <div className="mt-0.5 font-semibold tabular-nums text-[var(--text-primary)]">
+                            {usd(monthlyCost)}/mo
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[var(--text-muted)]">Savings rate</div>
+                          <div className="mt-0.5 font-semibold tabular-nums text-[var(--text-primary)]">
+                            {percent(rate)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[var(--text-muted)]">Status</div>
+                          <div className="mt-0.5 font-semibold" style={{ color: status.color }}>
+                            {status.label}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+
+          <Card
+            title="At a glance"
+            subtitle="Same 2026 tax engine and baseline metro costs as the calculator"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="text-xs text-[var(--text-muted)]">
+                    <th className="pb-3 pr-4 text-left font-medium">Metric</th>
+                    {results.map((result, index) => (
+                      <th
+                        key={result.scenario.id}
+                        className="px-3 pb-3 text-right font-medium"
+                      >
+                        <span className="block text-[var(--text-primary)]">
+                          Scenario {index + 1}
+                        </span>
+                        <span className="block font-normal">
+                          {result.metro.city}, {result.metro.stateCode}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      label: 'Gross salary',
+                      values: results.map((result) => usd(result.scenario.gross)),
+                    },
+                    {
+                      label: 'Net monthly pay',
+                      values: results.map((result) => usd(result.takeHome.netMonthly)),
+                    },
+                    {
+                      label: 'Monthly taxes',
+                      values: results.map((result) => usd(result.takeHome.totalTax / 12)),
+                    },
+                    {
+                      label: 'Baseline monthly costs',
+                      values: results.map((result) => usd(result.monthlyCost)),
+                    },
+                    {
+                      label: 'Monthly left over',
+                      values: results.map((result) => usd(result.surplus)),
+                      emphasis: true,
+                    },
+                    {
+                      label: 'Savings rate',
+                      values: results.map((result) => percent(result.rate)),
+                    },
+                    {
+                      label: 'Effective tax rate',
+                      values: results.map((result) => percent(result.takeHome.effectiveRate)),
+                    },
+                  ].map((row) => (
+                    <tr
+                      key={row.label}
+                      className="border-t"
+                      style={{ borderColor: 'var(--gridline)' }}
+                    >
+                      <td className="py-3 pr-4 text-[var(--text-secondary)]">
+                        {row.label}
+                      </td>
+                      {row.values.map((value, index) => {
+                        const result = results[index]
+                        const isBest =
+                          row.emphasis && result && result.surplus === bestSurplus
+                        return (
+                          <td
+                            key={result?.scenario.id ?? index}
+                            className="px-3 py-3 text-right font-medium tabular-nums"
+                            style={{
+                              color: isBest
+                                ? 'var(--accent)'
+                                : 'var(--text-primary)',
+                            }}
+                          >
+                            {value}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p
+              className="mt-4 border-t pt-3 text-xs leading-5 text-[var(--text-muted)]"
+              style={{ borderColor: 'var(--gridline)' }}
+            >
+              Comparison uses each metro’s built-in baseline costs for the selected housing tier. It intentionally excludes long-term projections so the comparison stays focused on today’s paycheck and monthly budget.
+            </p>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
