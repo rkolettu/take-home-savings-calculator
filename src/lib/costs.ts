@@ -30,10 +30,20 @@ export interface CostCategory {
   seriesVar: string
 }
 
+interface ElectricitySourceData {
+  stateAverageMonthlyBill?: Record<string, number>
+  billPeriod?: string
+  singleRenterFactor?: number
+  modeledNonElectricShare?: number
+  priceInflationMultiplier?: number
+  pricePeriod?: string
+}
+
 interface SourcedCostData {
   dataVersion: string
   categoryMultipliers: Record<string, number>
   housingMultipliers: Record<string, number>
+  electricity?: ElectricitySourceData
 }
 
 const sourcedCosts = sourcedCostsJson as SourcedCostData
@@ -92,6 +102,16 @@ function safeMultiplier(value: unknown): number {
   return value >= 0.5 && value <= 1.5 ? value : 1
 }
 
+function safeFraction(value: unknown, fallback: number, min: number, max: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
+  return value >= min && value <= max ? value : fallback
+}
+
+function safeMonthlyBill(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return value >= 30 && value <= 600 ? value : null
+}
+
 function adjusted(value: number, multiplier: number): number {
   return Math.max(0, Math.round(value * multiplier))
 }
@@ -111,8 +131,58 @@ export function legacyCostsFromMetro(
 }
 
 /**
+ * Utility basket with a real state-level electricity anchor.
+ *
+ * EIA publishes the average monthly residential electricity bill by state.
+ * That reflects an average household rather than one renter, so the generated
+ * data contains an explicit single-renter factor. Water, gas, trash and home
+ * internet remain a modeled share of the metro's original utility benchmark.
+ * Both pieces are bounded and the entire result falls back to the prior
+ * inflation-indexed benchmark if the EIA source is missing or malformed.
+ */
+function sourcedUtilities(metro: Metro, legacyUtilities: number): number {
+  const broadUtilityMultiplier = safeMultiplier(
+    sourcedCosts.categoryMultipliers.utilities,
+  )
+  const fallback = adjusted(legacyUtilities, broadUtilityMultiplier)
+  const electricity = sourcedCosts.electricity
+  if (!electricity) return fallback
+
+  const stateBill = safeMonthlyBill(
+    electricity.stateAverageMonthlyBill?.[metro.stateCode],
+  )
+  if (stateBill === null) return fallback
+
+  const renterFactor = safeFraction(
+    electricity.singleRenterFactor,
+    0.6,
+    0.3,
+    1,
+  )
+  const nonElectricShare = safeFraction(
+    electricity.modeledNonElectricShare,
+    0.45,
+    0.2,
+    0.8,
+  )
+  const electricityInflation = safeMultiplier(
+    electricity.priceInflationMultiplier,
+  )
+
+  const electricityEstimate = stateBill * renterFactor * electricityInflation
+  const modeledOtherUtilities =
+    legacyUtilities * nonElectricShare * broadUtilityMultiplier
+  const estimate = Math.round(electricityEstimate + modeledOtherUtilities)
+
+  // Keep even a technically valid upstream value from producing a wild jump.
+  const floor = Math.round(legacyUtilities * 0.5)
+  const ceiling = Math.round(legacyUtilities * 2)
+  return Math.min(Math.max(estimate, floor), ceiling)
+}
+
+/**
  * The metro's current baseline basket. The original metro values stay intact;
- * the generated source layer only applies bounded multipliers on top. If the
+ * the generated source layer only applies bounded adjustments on top. If the
  * source layer is disabled, stale, missing, or malformed, this returns the
  * original benchmarks exactly.
  */
@@ -128,10 +198,7 @@ export function costsFromMetro(
       legacy.housing,
       safeMultiplier(sourcedCosts.housingMultipliers[metro.id]),
     ),
-    utilities: adjusted(
-      legacy.utilities,
-      safeMultiplier(sourcedCosts.categoryMultipliers.utilities),
-    ),
+    utilities: sourcedUtilities(metro, legacy.utilities),
     groceries: adjusted(
       legacy.groceries,
       safeMultiplier(sourcedCosts.categoryMultipliers.groceries),
