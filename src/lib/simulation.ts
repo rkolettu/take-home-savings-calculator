@@ -239,6 +239,7 @@ export function simulate({
       filingStatus,
       stateCode: basis.metro.stateCode,
       localIncomeTaxRate: basis.metro.localIncomeTaxRate,
+      localIncomeTaxThreshold: basis.metro.localIncomeTaxThreshold,
     })
 
     const annualExpenses = Math.max(0, monthlyCost) * 12

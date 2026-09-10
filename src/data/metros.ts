@@ -104,6 +104,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'CT',
     region: 'Northeast',
     housing1BR: 2300,
+    housingConfidence: 'interpolated',
     utilities: 195,
     groceries: 560,
     transport: 170,
@@ -130,9 +131,9 @@ const METRO_SEEDS: MetroSeed[] = [
     groceries: 490,
     transport: 120,
     discretionary: 590,
-    localIncomeTaxRate: 0.0375,
+    localIncomeTaxRate: 0.03735,
     localTaxNote:
-      'Philadelphia resident wage tax, applied to gross wages with no deductions.',
+      'Philadelphia resident wage tax: 3.735%, effective July 1, 2026 (fiscal-year rate; applied to the full annual wage estimate).',
   },
   {
     id: 'hartford-ct',
@@ -140,6 +141,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'CT',
     region: 'Northeast',
     housing1BR: 1410,
+    housingConfidence: 'interpolated',
     utilities: 190,
     groceries: 510,
     transport: 150,
@@ -165,6 +167,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'DE',
     region: 'Northeast',
     housing1BR: 1240,
+    housingConfidence: 'interpolated',
     utilities: 170,
     groceries: 480,
     transport: 150,
@@ -334,6 +337,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'FL',
     region: 'Southeast',
     housing1BR: 2120,
+    housingConfidence: 'interpolated',
     utilities: 180,
     groceries: 530,
     transport: 185,
@@ -345,6 +349,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'FL',
     region: 'Southeast',
     housing1BR: 2030,
+    housingConfidence: 'interpolated',
     utilities: 180,
     groceries: 540,
     transport: 185,
@@ -609,8 +614,9 @@ const METRO_SEEDS: MetroSeed[] = [
     transport: 140,
     discretionary: 600,
     localIncomeTaxRate: 0.023,
+    localIncomeTaxThreshold: { single: 125_000, marriedJoint: 200_000, headOfHousehold: 125_000 },
     localTaxNote:
-      'Combined Metro Supportive Housing (1%) and Multnomah County Preschool for All (1.5%+) taxes. Both apply only to income above a threshold, so this flat 2.3% approximation OVERSTATES the tax at low incomes and understates it at high ones.',
+      'Portland Metro / Multnomah local tax is approximated at 2.3% above a modelled gross-income threshold of $125,000 single/head of household or $200,000 joint. The separate tax bases, upper tier and Metro inflation adjustment are not modelled.',
   },
 ]
 

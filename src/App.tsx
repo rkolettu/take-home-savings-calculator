@@ -160,6 +160,7 @@ export default function App() {
         filingStatus,
         stateCode: metro.stateCode,
         localIncomeTaxRate: metro.localIncomeTaxRate,
+        localIncomeTaxThreshold: metro.localIncomeTaxThreshold,
       }),
     [gross, filingStatus, metro],
   )

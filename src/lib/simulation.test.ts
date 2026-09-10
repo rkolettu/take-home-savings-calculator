@@ -489,3 +489,18 @@ describe('simulate — accounting identities', () => {
     }
   })
 })
+
+
+describe('simulate — Portland local threshold', () => {
+  it('uses the same threshold as the calculator below and above the boundary', () => {
+    const metro = METROS_BY_ID['portland-or']
+    const baseCosts = costsFromMetro(metro, 'one_bed')
+    for (const gross of [75_000, 125_000, 150_000]) {
+      const result = simulate(baseInput({
+        startingGross: gross, baseMetroId: metro.id, baseCosts, years: 1,
+      }))
+      const expected = computeTakeHome({ ...metro, gross, filingStatus: 'single' })
+      expect(result.years[1].annualSurplus).toBeCloseTo(expected.net - totalCost(baseCosts) * 12, 6)
+    }
+  })
+})

@@ -134,6 +134,7 @@ export interface Metro {
   housingStudio: number
   /** Median asking rent for a 1-bedroom unit. The anchor for the other tiers. */
   housing1BR: number
+  housingConfidence?: 'sourced' | 'interpolated'
   /** A full 2-bedroom occupied alone. */
   housing2BRSolo: number
   /** Electricity, gas, water, trash, home internet. */
@@ -148,5 +149,6 @@ export interface Metro {
    * exists (NYC, Philadelphia, Detroit, Portland). Omitted means none.
    */
   localIncomeTaxRate?: number
+  localIncomeTaxThreshold?: ByFilingStatus<number>
   localTaxNote?: string
 }

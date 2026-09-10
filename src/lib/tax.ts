@@ -4,7 +4,7 @@ import {
   FICA,
   STATE_TAX,
 } from '../data/taxTables'
-import type { FilingStatus, TaxBracket } from '../data/types'
+import type { ByFilingStatus, FilingStatus, TaxBracket } from '../data/types'
 
 /**
  * Pure 2026 tax math. No data literals live here — every figure comes from
@@ -120,9 +120,9 @@ export function stateIncomeTax(
   return applyBrackets(taxable, spec.brackets[filingStatus])
 }
 
-/** Resident municipal wage tax, approximated as a flat share of gross. */
-export function localIncomeTax(gross: number, localRate = 0): number {
-  return Math.max(0, gross) * localRate
+/** Resident wage tax on gross, or only the amount above a metro threshold. */
+export function localIncomeTax(gross: number, localRate = 0, threshold = 0): number {
+  return Math.max(0, gross - threshold) * localRate
 }
 
 export interface TakeHomeBreakdown {
@@ -149,6 +149,7 @@ export interface TakeHomeInput {
   stateCode: string
   /** Resident local income tax rate, from the metro record. */
   localIncomeTaxRate?: number
+  localIncomeTaxThreshold?: ByFilingStatus<number>
 }
 
 /** Full annual take-home computation for one salary in one jurisdiction. */
@@ -157,12 +158,13 @@ export function computeTakeHome({
   filingStatus,
   stateCode,
   localIncomeTaxRate = 0,
+  localIncomeTaxThreshold,
 }: TakeHomeInput): TakeHomeBreakdown {
   const safeGross = Math.max(0, gross)
 
   const federal = federalIncomeTax(safeGross, filingStatus)
   const state = stateIncomeTax(safeGross, filingStatus, stateCode)
-  const local = localIncomeTax(safeGross, localIncomeTaxRate)
+  const local = localIncomeTax(safeGross, localIncomeTaxRate, localIncomeTaxThreshold?.[filingStatus])
   const { socialSecurity, medicare } = ficaTax(safeGross, filingStatus)
 
   const totalTax = federal + state + local + socialSecurity + medicare

@@ -103,6 +103,18 @@ describe('ficaTax', () => {
 })
 
 describe('stateIncomeTax', () => {
+  it.each([
+    ['MN', 75_000, 3_576.605],
+    ['NY', 75_000, 3_453],
+    ['WI', 75_000, 3_334.36],
+    ['DE', 75_000, 3_719],
+    ['MO', 75_000, 2_587.668],
+    ['MD', 75_000, 3_198.875],
+    ['CA', 100_000, 5_207.98],
+  ] as const)('matches the verified %s schedule before unmodelled credits', (state, gross, expected) => {
+    expect(stateIncomeTax(gross, 'single', state)).toBeCloseTo(expected, 2)
+  })
+
   it('returns 0 for states with no wage income tax', () => {
     for (const code of ['TX', 'FL', 'WA', 'NV', 'TN']) {
       expect(stateIncomeTax(150_000, 'single', code)).toBe(0)
@@ -124,7 +136,7 @@ describe('stateIncomeTax', () => {
   })
 
   it('brackets progressive states', () => {
-    // California, single, 100,000 gross - 5,540 deduction = 94,460 taxable.
+    // California, single, 100,000 gross - 5,706 deduction = 94,294 taxable.
     const ca = stateIncomeTax(100_000, 'single', 'CA')
     expect(ca).toBeGreaterThan(4_000)
     expect(ca).toBeLessThan(6_500)
@@ -211,6 +223,31 @@ describe('state tax coverage across every metro', () => {
 })
 
 describe('computeTakeHome', () => {
+  it.each([
+    ['single', 75_000, 0],
+    ['single', 125_000, 0],
+    ['single', 150_000, 575],
+    ['marriedJoint', 200_000, 0],
+    ['marriedJoint', 225_000, 575],
+    ['headOfHousehold', 150_000, 575],
+  ] as const)('applies Portland threshold for %s at $%i', (filingStatus, gross, expected) => {
+    const result = computeTakeHome({
+      ...METROS_BY_ID['portland-or'],
+      filingStatus,
+      gross,
+    })
+    expect(result.local).toBeCloseTo(expected, 6)
+  })
+
+  it('preserves flat local tax when no threshold is supplied', () => {
+    const result = computeTakeHome({
+      ...METROS_BY_ID['indianapolis-in'],
+      filingStatus: 'single',
+      gross: 75_000,
+    })
+    expect(result.local).toBe(1_515)
+  })
+
   it('nets gross minus every component', () => {
     const r = computeTakeHome({
       gross: 120_000,
