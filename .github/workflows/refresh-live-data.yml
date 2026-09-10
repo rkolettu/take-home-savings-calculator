@@ -1,7 +1,6 @@
 name: Refresh live data
 
 on:
-  push:
   schedule:
     # Source datasets are monthly. A weekly check is frequent enough while
     # keeping external traffic tiny and independent of website visitors.
@@ -22,7 +21,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Refresh latest public data
         run: node scripts/refresh-live-data.mjs
