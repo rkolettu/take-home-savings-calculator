@@ -166,7 +166,7 @@ describe('sanitising corrupt entries', () => {
     write(
       JSON.stringify({
         costs: {
-          housing1BR: 1_650,
+          housing1BR: 1_260,
           utilities: 165,
           groceries: 480,
           transport: 185,
@@ -175,7 +175,7 @@ describe('sanitising corrupt entries', () => {
       }),
     )
     expect(loadState(storage).costs).toEqual({
-      housing: 1_650,
+      housing: 1_260,
       utilities: 165,
       groceries: 480,
       transport: 185,
