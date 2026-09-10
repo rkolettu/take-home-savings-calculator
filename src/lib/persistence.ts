@@ -2,7 +2,12 @@ import { METROS_BY_ID } from '../data/metroData'
 import type { FilingStatus, HousingTier } from '../data/types'
 import { HOUSING_TIERS } from '../data/types'
 import type { CostBreakdown } from './costs'
-import { COST_CATEGORIES } from './costs'
+import {
+  COST_CATEGORIES,
+  COST_DATA_VERSION,
+  costsMatchDefaults,
+  costsMatchLegacyDefaults,
+} from './costs'
 import type { Milestone, MilestoneKind } from './milestones'
 import type { VehicleReturns, VehicleWeights } from './vehicles'
 import { VEHICLES } from './vehicles'
@@ -197,7 +202,32 @@ export function loadState(
   if (startingBalance !== undefined) state.startingBalance = startingBalance
 
   const costs = readCosts(source.costs)
-  if (costs) state.costs = costs
+  if (costs && state.metroId && state.housingTier) {
+    const metro = METROS_BY_ID[state.metroId]
+    const storedVersion =
+      typeof source._costDataVersion === 'string'
+        ? source._costDataVersion
+        : undefined
+    const storedEdited = source._costsEdited === true
+
+    /*
+     * Defaults should move forward when the generated source data moves.
+     * Actual user edits survive every refresh. For old v1 saves that predate
+     * these metadata fields, compare against the exact legacy benchmarks so
+     * we can distinguish an untouched default from a hand-edited budget.
+     */
+    const isOldManualEdit =
+      storedVersion === undefined &&
+      !costsMatchLegacyDefaults(costs, metro, state.housingTier)
+
+    if (
+      storedEdited ||
+      isOldManualEdit ||
+      storedVersion === COST_DATA_VERSION
+    ) {
+      state.costs = costs
+    }
+  }
 
   const weights = readVehicleMap(source.weights, 0, 100)
   if (weights) state.weights = weights as VehicleWeights
@@ -224,7 +254,19 @@ export function saveState(
 ): void {
   if (!storage) return
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(state))
+    const metro = METROS_BY_ID[state.metroId]
+    const costsEdited = metro
+      ? !costsMatchDefaults(state.costs, metro, state.housingTier)
+      : true
+
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        ...state,
+        _costDataVersion: COST_DATA_VERSION,
+        _costsEdited: costsEdited,
+      }),
+    )
   } catch {
     /* Quota exceeded or storage disabled — the app still works in memory. */
   }
