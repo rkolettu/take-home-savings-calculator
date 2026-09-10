@@ -1,0 +1,37 @@
+name: Refresh live data
+
+on:
+  schedule:
+    - cron: '15 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Refresh latest public data
+        run: node scripts/refresh-live-data.mjs
+
+      - name: Commit updated data when changed
+        run: |
+          if git diff --quiet -- src/data/liveData.json; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/liveData.json
+          git commit -m "chore: refresh live data"
+          git push
