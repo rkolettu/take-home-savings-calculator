@@ -1,9 +1,14 @@
 name: Refresh live data
 
 on:
+  push:
+    paths:
+      - 'scripts/refresh-live-data.mjs'
+      - 'scripts/refresh-eia-electricity.py'
+      - '.github/workflows/refresh-live-data.yml'
   schedule:
-    # Source datasets are monthly. A weekly check is frequent enough while
-    # keeping external traffic tiny and independent of website visitors.
+    # Source datasets are monthly/annual. A weekly check is frequent enough
+    # while keeping external traffic tiny and independent of website visitors.
     - cron: '15 14 * * 1'
   workflow_dispatch:
 
@@ -17,6 +22,19 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install EIA workbook reader
+        continue-on-error: true
+        run: python -m pip install --disable-pip-version-check openpyxl==3.1.5
+
+      - name: Refresh state electricity bills
+        continue-on-error: true
+        run: python scripts/refresh-eia-electricity.py
 
       - name: Set up Node
         uses: actions/setup-node@v4
