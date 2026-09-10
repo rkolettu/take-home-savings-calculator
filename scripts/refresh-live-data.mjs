@@ -180,6 +180,15 @@ function latestPoint(points) {
   return { period, value: points.get(period) }
 }
 
+function averageForYear(points, year) {
+  const values = [...points.entries()]
+    .filter(([period]) => period.startsWith(`${year}-`))
+    .map(([, value]) => value)
+    .filter((value) => Number.isFinite(value) && value > 0)
+  if (values.length < 10) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
 function boundedMultiplier(value, label, min = 0.5, max = 1.5) {
   if (!Number.isFinite(value) || value < min || value > max) {
     throw new Error(`${label} multiplier ${value} failed validation`)
@@ -267,6 +276,26 @@ async function refreshPriceIndexes(existingCosts, nextCosts, nextLive) {
 
   nextCosts.categoryMultipliers = multipliers
   nextCosts.categoryPeriods = periods
+
+  // EIA's state bill table is annual. Bring that state-level dollar anchor
+  // forward using the same national utility-price series, without making any
+  // browser/API request at runtime.
+  const electricity = nextCosts.electricity
+  const billYear = Number(electricity?.billPeriod)
+  if (electricity && Number.isInteger(billYear) && billYear >= 2000 && billYear <= 2100) {
+    const utilityLatest = latestPoint(series.utilities)
+    const utilityAnnualBase = averageForYear(series.utilities, billYear)
+    if (utilityAnnualBase) {
+      electricity.priceInflationMultiplier = boundedMultiplier(
+        utilityLatest.value / utilityAnnualBase,
+        'electricity price inflation',
+        0.6,
+        1.6,
+      )
+      electricity.pricePeriod = formatPeriod(utilityLatest.period)
+    }
+  }
+
   nextLive.inflationLabel = 'Latest available'
   nextLive.inflationRate = Number(inflationRate.toFixed(4))
   nextLive.inflationPeriod = formatPeriod(latestAll.period)
@@ -351,6 +380,9 @@ async function main() {
     zillowPeriod ? `zori-${zillowPeriod}` : `zori-${existingCosts.housingPeriod}`,
     pricePeriod ? `bls-${pricePeriod}` : `bls-${existingLive.inflationPeriod}`,
   ]
+  if (nextCosts.electricity?.billPeriod) {
+    versionParts.push(`eia-${nextCosts.electricity.billPeriod}`)
+  }
   nextCosts.dataVersion = versionParts.join('_')
   nextCosts.generatedAt = now.toISOString().slice(0, 10)
   nextCosts.basePeriod = COST_BASE_PERIOD
