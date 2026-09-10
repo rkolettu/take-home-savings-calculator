@@ -65,8 +65,7 @@ export function housingForTier(metro: Metro, tier: HousingTier): number {
  *  - discretionary   dining out, entertainment, personal care, subscriptions
  *
  * `localIncomeTaxRate` is a resident municipal or county wage tax, applied
- * as a flat share of gross. Where the real schedule is graduated or has a
- * threshold, the note says which direction the approximation errs.
+ * as a flat share of gross unless a filing-status threshold is supplied.
  *
  * Vintage: 2026 estimates. Entries are grouped by region for readability;
  * display order is derived, not positional.
@@ -104,6 +103,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'CT',
     region: 'Northeast',
     housing1BR: 2300,
+    housingConfidence: 'interpolated',
     utilities: 195,
     groceries: 560,
     transport: 170,
@@ -130,9 +130,9 @@ const METRO_SEEDS: MetroSeed[] = [
     groceries: 490,
     transport: 120,
     discretionary: 590,
-    localIncomeTaxRate: 0.0375,
+    localIncomeTaxRate: 0.03735,
     localTaxNote:
-      'Philadelphia resident wage tax, applied to gross wages with no deductions.',
+      'Philadelphia resident wage tax, 3.735% effective July 1, 2026, applied to gross wages with no deductions.',
   },
   {
     id: 'hartford-ct',
@@ -140,6 +140,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'CT',
     region: 'Northeast',
     housing1BR: 1410,
+    housingConfidence: 'interpolated',
     utilities: 190,
     groceries: 510,
     transport: 150,
@@ -165,6 +166,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'DE',
     region: 'Northeast',
     housing1BR: 1240,
+    housingConfidence: 'interpolated',
     utilities: 170,
     groceries: 480,
     transport: 150,
@@ -334,6 +336,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'FL',
     region: 'Southeast',
     housing1BR: 2120,
+    housingConfidence: 'interpolated',
     utilities: 180,
     groceries: 530,
     transport: 185,
@@ -345,6 +348,7 @@ const METRO_SEEDS: MetroSeed[] = [
     stateCode: 'FL',
     region: 'Southeast',
     housing1BR: 2030,
+    housingConfidence: 'interpolated',
     utilities: 180,
     groceries: 540,
     transport: 185,
@@ -609,8 +613,13 @@ const METRO_SEEDS: MetroSeed[] = [
     transport: 140,
     discretionary: 600,
     localIncomeTaxRate: 0.023,
+    localIncomeTaxThreshold: {
+      single: 125_000,
+      marriedJoint: 200_000,
+      headOfHousehold: 125_000,
+    },
     localTaxNote:
-      'Combined Metro Supportive Housing (1%) and Multnomah County Preschool for All (1.5%+) taxes. Both apply only to income above a threshold, so this flat 2.3% approximation OVERSTATES the tax at low incomes and understates it at high ones.',
+      'Combined Metro Supportive Housing and Multnomah County Preschool for All taxes. The income threshold is now modelled at $125,000 for single/head-of-household and $200,000 for joint filers; the combined 2.3% rate remains a simplified approximation above the threshold.',
   },
 ]
 
