@@ -3,10 +3,11 @@
   "taxes": "2026 rules",
   "rentEstimates": "Zillow-indexed · Jul 2026",
   "inflationLabel": "Latest available",
-  "inflationRate": 0.034,
+  "inflationRate": 0.033,
   "inflationPeriod": "July 2026",
-  "inflationSource": "U.S. Bureau of Labor Statistics CPI-U",
+  "inflationSource": "U.S. Bureau of Labor Statistics CPI-U via FRED public CSV",
   "refreshedAt": "2026-09-10",
   "rentSource": "Zillow Observed Rent Index (ZORI)",
-  "costModel": "Public-data indexed benchmarks"
+  "costModel": "Public-data indexed benchmarks",
+  "costIndexPeriod": "July 2026"
 }

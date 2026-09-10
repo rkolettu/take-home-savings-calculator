@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "dataVersion": "zori-2026-07_bls-July 2026",
+  "dataVersion": "zori-2026-07_bls-2026-07",
   "generatedAt": "2026-09-10",
   "basePeriod": "2026-07",
   "categoryMultipliers": {
     "utilities": 1,
-    "groceries": 1,
+    "groceries": 0.90952,
     "transport": 1,
     "discretionary": 1
   },
