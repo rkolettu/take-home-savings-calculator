@@ -18,10 +18,10 @@ const ZILLOW_URL =
 // not require a key or a metered API account, which keeps the scheduled job
 // independent of API quotas while preserving BLS as the underlying source.
 const BLS_SERIES = {
-  allItems: 'CUSR0000SA0',
+  allItems: 'CPIAUCSL',
   groceries: 'CUSR0000SAF11',
   utilities: 'CUSR0000SAH2',
-  transport: 'CUSR0000SAT',
+  transport: 'CUSR0000SAT1',
   discretionary: 'CUSR0000SAR',
 }
 
