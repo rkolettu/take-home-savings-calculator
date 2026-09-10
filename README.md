@@ -54,7 +54,7 @@ npm run dev
 | Script | What it does |
 |---|---|
 | `npm run dev` | Dev server with HMR at `http://localhost:5173` |
-| `npm test` | Full Vitest suite (138 tests) |
+| `npm test` | Full Vitest suite |
 | `npm run typecheck` | `tsc -b --noEmit` |
 | `npm run lint` | oxlint |
 | `npm run build` | Typecheck then production build into `dist/` |
@@ -97,30 +97,44 @@ Gross wages are reduced by, in order:
 3. **State income tax** — a per-state spec that is progressive brackets, a
    flat rate, or none. Filing-status-specific brackets, standard deductions
    and personal exemptions are modelled where a state has them.
-4. **Local income tax** — a resident municipal or county wage tax, applied as
-   a flat share of gross, in the 13 metros that levy one (New York City,
-   Philadelphia, Pittsburgh, Baltimore, Wilmington, Detroit, Columbus,
-   Cincinnati, Cleveland, Indianapolis, St. Louis, Kansas City, Portland).
+4. **Local income tax** — a resident municipal or county wage tax in the 13
+   metros that levy one (New York City, Philadelphia, Pittsburgh, Baltimore,
+   Wilmington, Detroit, Columbus, Cincinnati, Cleveland, Indianapolis,
+   St. Louis, Kansas City, Portland). These are flat-on-gross approximations
+   except where a filing-status threshold is explicitly modelled; Portland's
+   local tax is applied only to income above its configured threshold.
 
 ### Data provenance and confidence
 
 Every state spec carries a `vintage` and a `confidence` field, surfaced in the
 UI when you expand the deduction breakdown:
 
-- `published-2026` — the official 2026 figure has been released.
-- `carried-from-2025` — no 2026 table was published, so the most recent known
-  value is carried forward as an estimate. Most states index brackets
-  annually, so these will drift.
+- `published-2026` — an official 2026 schedule or current-year calculation
+  method has been published.
+- `carried-from-2025` — the most recent known value is carried forward as an
+  estimate.
 
 Where a spec makes a deliberate simplification, the `note` field says so and
-says which direction it errs. Connecticut's and Wisconsin's income-tested
-deductions are modelled as zero, for example, which overstates tax at low
-incomes; Utah's taxpayer credit is not modelled, which does the same.
+says which direction it errs. Known limitations intentionally left in this
+pass include Connecticut's and Wisconsin's income-tested deductions being
+modelled as zero, which overstates tax at lower incomes; Utah's taxpayer
+credit being unmodelled, which also overstates tax at lower and middle
+incomes; Ohio work-city credits being assumed away; Maryland modelling only
+Baltimore City rather than all 24 local jurisdictions; and New York City's
+resident tax being approximated as a flat 3.76% instead of the actual
+3.078%–3.876% progressive range.
 
 ### Housing benchmarks
 
-Each metro is anchored on a one-bedroom rent benchmark. The other three tiers
-are derived from it so that the 45 metros stay in proportion with each other:
+Each metro is anchored on a one-bedroom rent benchmark. For August 2026, the
+1BR anchors use median asking rents from a single-source market benchmark for
+40 covered metros. The five uncovered metros — Stamford, Hartford,
+Wilmington, Palm Beach, and Naples — use the prior hand benchmark multiplied
+by 0.8829, the mean new-to-old ratio across the 40 covered metros, and are
+explicitly marked `interpolated` in the data and UI.
+
+The other three housing tiers are derived from the 1BR anchor so that the 45
+metros stay in proportion with each other:
 
 | Tier | Share of 1BR |
 |---|---|
@@ -133,8 +147,10 @@ The roommate share widens with market cost — where rent is high, people share
 larger units and split further — so it is 55% in expensive metros and 60% in
 cheaper ones. Any metro can override any tier explicitly.
 
-**These are internally-derived benchmark estimates, not a licensed or
-government dataset.** See the data caveat below.
+Utilities, groceries, transportation, and discretionary spending remain
+modelled metro benchmark estimates. A generated sourced-cost indexing layer
+is retained in the repository but disabled because an index ratio can track
+future drift without independently validating a starting price level.
 
 ### Dynamic cash flow and compounding
 
@@ -179,16 +195,19 @@ rewrites the others. Presets cover 100% of each vehicle plus a balanced mix.
 
 **This tool is for exploration, not for filing or for financial advice.**
 
-The cost-of-living figures are benchmark estimates assembled to be
-directionally right and internally consistent so that metro-to-metro
-comparison is meaningful. They are not drawn from HUD Fair Market Rents, BLS
-consumer expenditure data, or any commercial rent index, and no individual
-figure should be quoted as a statistic. Replacing `src/data/metros.ts` with
-real data requires no changes anywhere else in the codebase.
+The August 2026 one-bedroom rent anchors are market benchmark estimates: 40
+metros are directly covered by the cited single-source median asking-rent
+benchmark and five are interpolated as described above. The remaining
+cost-of-living categories are modelled estimates assembled to be directionally
+useful and internally consistent for metro comparison; no individual utility,
+grocery, transportation, or discretionary figure should be quoted as an
+authoritative statistic.
 
-Not modelled anywhere: tax credits, itemised deductions, pre-tax retirement or
-HSA contributions, employer matching, self-employment tax, capital gains, AMT,
-the NIIT, and state millionaire surtaxes.
+Not modelled anywhere: many tax credits and phase-outs, itemised deductions,
+pre-tax retirement or HSA contributions, employer matching, self-employment
+tax, capital gains, AMT, the NIIT, and state millionaire surtaxes. Specific
+known state/local simplifications are listed under Data provenance and
+confidence above.
 
 ## Project structure
 
@@ -197,7 +216,7 @@ src/
   data/
     types.ts        Domain types: filing status, regions, housing tiers, metros
     metros.ts       45 metro benchmarks; housing tiers derived from the 1BR anchor
-    taxTables.ts    2026 federal brackets, FICA constants, 28 jurisdiction specs
+    taxTables.ts    2026 federal brackets, FICA constants, jurisdiction specs
     metroData.ts    Public barrel — components import from here
   lib/
     tax.ts          Pure bracket / FICA / state / local math
@@ -218,10 +237,11 @@ src/
 npm test
 ```
 
-138 tests cover the bracket math against hand-computed values, wage-base and
-surtax thresholds, every state spec's shape and plausibility, housing-tier
-derivation, the simulation's accounting identities, milestone precedence
-rules, CSV escaping, and persistence against corrupt or hand-edited storage.
+The tests cover bracket math against hand-computed values, wage-base and
+surtax thresholds, state-spec shape and plausibility, housing data and tier
+derivation, local-tax thresholds, simulation accounting identities,
+milestone precedence rules, CSV escaping, and persistence against corrupt or
+hand-edited storage.
 
 The simulation suite includes a cross-check asserting that the year-by-year
 engine agrees with the simpler fixed-contribution projection to four decimal
