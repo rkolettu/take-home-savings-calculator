@@ -6,8 +6,8 @@ import {
   ShoppingBasket,
   TrendingUp,
 } from 'lucide-react'
-import liveData from '../data/liveData.json'
 import { USE_AUTOMATIC_COST_UPDATES } from '../data/costDataConfig'
+import liveData from '../data/liveData.json'
 import sourcedCosts from '../data/sourcedCosts.json'
 
 // Ignore rounding noise from dividing raw source values by rounded anchors.

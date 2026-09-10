@@ -67,10 +67,8 @@ export const FICA = {
 /* ------------------------------------------------------------------ *
  * STATES
  *
- * Only the 19 jurisdictions covering the 25 metros in `metros.ts` are
- * modelled. Read `confidence` before quoting any of these numbers:
- * several states index their brackets annually and had not published
- * 2026 figures, so the 2025 values are carried forward as estimates.
+ * Only the jurisdictions covering the metros in `metros.ts` are modelled.
+ * Read `confidence` before quoting any of these numbers.
  *
  * Simplifications that apply throughout:
  *  - Credits, phase-outs, and itemized deductions are not modelled.

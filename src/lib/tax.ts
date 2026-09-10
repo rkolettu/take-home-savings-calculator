@@ -120,9 +120,13 @@ export function stateIncomeTax(
   return applyBrackets(taxable, spec.brackets[filingStatus])
 }
 
-/** Resident wage tax on gross, or only the amount above a metro threshold. */
-export function localIncomeTax(gross: number, localRate = 0, threshold = 0): number {
-  return Math.max(0, gross - threshold) * localRate
+/** Resident municipal wage tax; a supplied threshold applies before the rate. */
+export function localIncomeTax(
+  gross: number,
+  localRate = 0,
+  threshold = 0,
+): number {
+  return Math.max(0, Math.max(0, gross) - threshold) * localRate
 }
 
 export interface TakeHomeBreakdown {
@@ -149,6 +153,7 @@ export interface TakeHomeInput {
   stateCode: string
   /** Resident local income tax rate, from the metro record. */
   localIncomeTaxRate?: number
+  /** Filing-status threshold for the resident local income tax, if any. */
   localIncomeTaxThreshold?: ByFilingStatus<number>
 }
 
@@ -164,7 +169,11 @@ export function computeTakeHome({
 
   const federal = federalIncomeTax(safeGross, filingStatus)
   const state = stateIncomeTax(safeGross, filingStatus, stateCode)
-  const local = localIncomeTax(safeGross, localIncomeTaxRate, localIncomeTaxThreshold?.[filingStatus])
+  const local = localIncomeTax(
+    safeGross,
+    localIncomeTaxRate,
+    localIncomeTaxThreshold?.[filingStatus] ?? 0,
+  )
   const { socialSecurity, medicare } = ficaTax(safeGross, filingStatus)
 
   const totalTax = federal + state + local + socialSecurity + medicare

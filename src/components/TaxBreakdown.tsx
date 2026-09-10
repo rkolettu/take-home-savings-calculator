@@ -171,6 +171,14 @@ export function TaxBreakdown({ takeHome, metro }: TaxBreakdownProps) {
               </span>
             </p>
           )}
+          {metro.housingConfidence === 'interpolated' && (
+            <p className="mt-3 flex gap-1.5 text-xs text-[var(--text-muted)]">
+              <Info className="mt-px size-3.5 shrink-0" />
+              <span>
+                Housing is interpolated rather than directly measured: the prior benchmark was scaled by 0.8829, the mean new-to-old rent ratio across the 40 metros covered by the August 2026 source.
+              </span>
+            </p>
+          )}
         </div>
       )}
     </div>

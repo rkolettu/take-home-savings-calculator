@@ -65,8 +65,7 @@ export function housingForTier(metro: Metro, tier: HousingTier): number {
  *  - discretionary   dining out, entertainment, personal care, subscriptions
  *
  * `localIncomeTaxRate` is a resident municipal or county wage tax, applied
- * as a flat share of gross. Where the real schedule is graduated or has a
- * threshold, the note says which direction the approximation errs.
+ * as a flat share of gross unless a filing-status threshold is supplied.
  *
  * Vintage: 2026 estimates. Entries are grouped by region for readability;
  * display order is derived, not positional.
