@@ -1,21 +1,36 @@
-import { Database, Home, ReceiptText, RefreshCw, TrendingUp } from 'lucide-react'
+import {
+  Database,
+  Home,
+  ReceiptText,
+  RefreshCw,
+  ShoppingBasket,
+  TrendingUp,
+} from 'lucide-react'
 import liveData from '../data/liveData.json'
 
 const items = [
   {
     label: 'Taxes',
     value: liveData.taxes,
+    detail: 'Versioned tax tables',
     icon: ReceiptText,
   },
   {
-    label: 'Rent estimates',
+    label: 'Rent',
     value: liveData.rentEstimates,
+    detail: 'Zillow ZORI',
     icon: Home,
   },
   {
+    label: 'Living-cost indexes',
+    value: liveData.costIndexPeriod,
+    detail: 'USDA + BLS/FRED',
+    icon: ShoppingBasket,
+  },
+  {
     label: 'Inflation',
-    value: liveData.inflationLabel,
-    detail: `${(liveData.inflationRate * 100).toFixed(1)}% CPI-U · ${liveData.inflationPeriod}`,
+    value: `${(liveData.inflationRate * 100).toFixed(1)}% CPI-U`,
+    detail: liveData.inflationPeriod,
     icon: TrendingUp,
   },
 ]
@@ -39,12 +54,12 @@ export function DataFreshness() {
               </div>
               <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
                 <RefreshCw className="size-3" />
-                Automatic data checks enabled
+                Weekly source checks · cached locally
               </div>
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[580px]">
+          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[720px] lg:grid-cols-4">
             {items.map((item) => {
               const Icon = item.icon
               return (
@@ -58,11 +73,9 @@ export function DataFreshness() {
                     <div className="text-[var(--text-muted)]">{item.label}</div>
                     <div className="truncate font-semibold text-[var(--text-secondary)]">
                       {item.value}
-                      {'detail' in item && item.detail ? (
-                        <span className="ml-1 font-normal text-[var(--text-muted)]">
-                          · {item.detail}
-                        </span>
-                      ) : null}
+                    </div>
+                    <div className="truncate text-[9px] text-[var(--text-muted)]">
+                      {item.detail}
                     </div>
                   </div>
                 </div>
@@ -77,10 +90,13 @@ export function DataFreshness() {
         >
           <div className="space-y-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
             <p>
-              Inflation is checked automatically against the latest available U.S. CPI-U release. Tax tables and rent figures are versioned snapshots. Grocery, utility, transportation, discretionary-spending, wage-growth, and investment-return assumptions are benchmark estimates and may be refreshed less frequently.
+              Living-cost defaults are cached, versioned benchmarks rather than live browser API calls. Housing keeps each metro’s housing-tier baseline and moves it with Zillow ZORI. Groceries use a USDA Moderate-Cost single-adult benchmark adjusted with BLS food-at-home prices; utility, transportation, and discretionary benchmarks retain their metro-specific baselines and are updated over time with relevant BLS price indexes via FRED. If a source is unavailable or fails validation, the last known good data remains in use.
             </p>
             <p>
-              Educational estimates only — not tax, investment, legal, or financial advice. Actual results may differ based on credits, deductions, benefits, withholding, residency, local rules, and future tax-law changes. Verify important decisions with official sources or a qualified professional.
+              Tax rules are versioned separately and are not automatically inferred from new legislation. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.
+            </p>
+            <p>
+              Educational estimates only — not tax, investment, legal, or financial advice. Actual results may differ based on credits, deductions, benefits, withholding, residency, local rules, personal spending, and future tax-law changes. Verify important decisions with official sources or a qualified professional.
             </p>
           </div>
 
