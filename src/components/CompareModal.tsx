@@ -36,7 +36,7 @@ function makeInitialScenarios(): CompareScenario[] {
   const secondaryMetroId =
     METROS.find((metro) => metro.id !== primaryMetroId)?.id ?? primaryMetroId
   const gross = saved.gross ?? 120_000
-  const filingStatus = saved.filingStatus ?? 'single'
+  const filingStatus: FilingStatus = 'single'
   const housingTier = saved.housingTier ?? 'roommate'
 
   return [
@@ -105,7 +105,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
         id: nextId.current++,
         metroId: nextMetro.id,
         gross: reference?.gross ?? 120_000,
-        filingStatus: reference?.filingStatus ?? 'single',
+        filingStatus: 'single',
         housingTier: reference?.housingTier ?? 'roommate',
       },
     ])
