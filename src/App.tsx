@@ -386,7 +386,7 @@ export default function App() {
                 </div>
               </Card>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatTile
                   label="Gross monthly"
                   value={usd(gross / 12)}
@@ -404,18 +404,6 @@ export default function App() {
                   label="Effective rate"
                   value={percent(takeHome.effectiveRate)}
                   detail="All taxes ÷ gross"
-                  icon={<Percent className="size-3.5" />}
-                />
-                <StatTile
-                  label="Social Security"
-                  value={usd(takeHome.socialSecurity / 12)}
-                  detail={`${usd(takeHome.socialSecurity)} / yr`}
-                  icon={<Landmark className="size-3.5" />}
-                />
-                <StatTile
-                  label="Medicare"
-                  value={usd(takeHome.medicare / 12)}
-                  detail={`${usd(takeHome.medicare)} / yr`}
                   icon={<Percent className="size-3.5" />}
                 />
                 <StatTile
