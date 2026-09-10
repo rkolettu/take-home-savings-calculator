@@ -2,7 +2,9 @@ name: Refresh live data
 
 on:
   schedule:
-    - cron: '15 14 * * *'
+    # Source datasets are monthly. A weekly check is frequent enough while
+    # keeping external traffic tiny and independent of website visitors.
+    - cron: '15 14 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -11,6 +13,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -25,13 +28,13 @@ jobs:
 
       - name: Commit updated data when changed
         run: |
-          if git diff --quiet -- src/data/liveData.json; then
+          if git diff --quiet -- src/data/liveData.json src/data/sourcedCosts.json; then
             echo "No data changes to commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/liveData.json
-          git commit -m "chore: refresh live data"
+          git add src/data/liveData.json src/data/sourcedCosts.json
+          git commit -m "chore: refresh public cost data"
           git push
