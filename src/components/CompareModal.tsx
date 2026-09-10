@@ -1,4 +1,11 @@
-import { ArrowLeftRight, Plus, Trash2, Wallet, X } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  PiggyBank,
+  Plus,
+  Trash2,
+  Wallet,
+  X,
+} from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import {
   FILING_STATUS_LABELS,
@@ -84,6 +91,10 @@ export function CompareModal({ onClose }: CompareModalProps) {
   )
 
   const bestSurplus = Math.max(...results.map((result) => result.surplus))
+  const rankedResults = [...results].sort((a, b) => b.surplus - a.surplus)
+  const bestResult = rankedResults[0]
+  const nextBestSurplus = rankedResults[1]?.surplus ?? bestSurplus
+  const monthlyAdvantage = Math.max(0, bestSurplus - nextBestSurplus)
 
   function updateScenario(id: number, patch: Partial<CompareScenario>) {
     setScenarios((current) =>
@@ -171,6 +182,53 @@ export function CompareModal({ onClose }: CompareModalProps) {
         </div>
 
         <div className="space-y-5 p-4 sm:p-6">
+          {bestResult && (
+            <div
+              className="rounded-2xl border p-4 sm:p-5"
+              style={{
+                borderColor: 'color-mix(in srgb, var(--accent) 32%, var(--border))',
+                background: 'var(--accent-soft)',
+              }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="rounded-xl bg-[var(--surface-raised)] p-2.5 text-[var(--accent)]">
+                    <PiggyBank className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.09em] text-[var(--accent)]">
+                      Best monthly savings
+                    </div>
+                    <div className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-primary)]">
+                      {bestResult.metro.city}, {bestResult.metro.stateCode} comes out ahead
+                    </div>
+                    <p className="mt-1 text-sm leading-5 text-[var(--text-secondary)]">
+                      {monthlyAdvantage > 0
+                        ? `This scenario leaves you with ${usd(monthlyAdvantage)} more each month than the next-best option.`
+                        : 'The top scenarios are tied for monthly savings.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="min-w-[150px] rounded-xl bg-[var(--surface-raised)] px-4 py-3 text-right">
+                  <div className="text-2xl font-semibold tracking-tight tabular-nums text-[var(--accent)]">
+                    {monthlyAdvantage > 0
+                      ? `+${usd(monthlyAdvantage)}`
+                      : usd(bestResult.surplus)}
+                  </div>
+                  <div className="mt-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                    {monthlyAdvantage > 0 ? 'more / month' : 'left / month'}
+                  </div>
+                  {monthlyAdvantage > 0 && (
+                    <div className="mt-1 text-[11px] tabular-nums text-[var(--text-muted)]">
+                      {usd(monthlyAdvantage * 12)} more / year
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {results.map((result, index) => {
               const { scenario, metro, takeHome, monthlyCost, surplus, rate, status } = result
@@ -185,7 +243,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
                     <div className="flex items-center gap-2">
                       {isBest && (
                         <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
-                          Most left over
+                          Best
                         </span>
                       )}
                       {scenarios.length > 2 && (
@@ -205,6 +263,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
                     <MetroSelector
                       metroId={scenario.metroId}
                       onChange={(metroId) => updateScenario(scenario.id, { metroId })}
+                      showCompareButton={false}
                     />
 
                     <div>
