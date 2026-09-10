@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "legacy-baseline-2026-07",
+  "generatedAt": "2026-09-10",
+  "basePeriod": "2026-07",
+  "categoryMultipliers": {
+    "utilities": 1,
+    "groceries": 1,
+    "transport": 1,
+    "discretionary": 1
+  },
+  "categoryPeriods": {
+    "utilities": "July 2026",
+    "groceries": "July 2026",
+    "transport": "July 2026",
+    "discretionary": "July 2026"
+  },
+  "housingMultipliers": {},
+  "housingBaseValues": {},
+  "housingLatestValues": {},
+  "housingPeriod": "July 2026",
+  "housingCoverage": 0,
+  "sources": {
+    "housing": "Zillow Observed Rent Index (ZORI), used to index the existing housing-tier benchmarks over time",
+    "groceries": "USDA Moderate-Cost Food Plan baseline for a one-person adult household, updated with BLS food-at-home CPI",
+    "utilities": "Existing metro utility benchmark, updated with BLS fuels-and-utilities CPI",
+    "transport": "Existing metro transportation benchmark, updated with BLS transportation CPI",
+    "discretionary": "Existing metro discretionary benchmark, updated with BLS recreation CPI",
+    "inflation": "BLS CPI-U All Items"
+  }
+}
