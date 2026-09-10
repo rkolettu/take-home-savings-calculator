@@ -22,7 +22,7 @@ const BLS_SERIES = {
   groceries: 'CUSR0000SAF11',
   utilities: 'CUSR0000SAH2',
   transport: 'CUSR0000SAT1',
-  discretionary: 'CUSR0000SAR',
+  discretionary: 'SUUR0000SAR',
 }
 
 function fredCsvUrl(seriesId) {
