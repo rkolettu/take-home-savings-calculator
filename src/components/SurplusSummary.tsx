@@ -19,31 +19,31 @@ function bandFor(rate: number) {
   if (rate < 0) {
     return {
       color: 'var(--status-critical)',
-      label: 'Running a deficit',
+      label: 'Deficit',
       hint: 'Baseline costs exceed take-home pay at this salary.',
       Icon: TriangleAlert,
-    }
-  }
-  if (rate < 0.1) {
-    return {
-      color: 'var(--status-serious)',
-      label: 'Very tight',
-      hint: 'Under 10% of take-home is left after baseline costs.',
-      Icon: CircleAlert,
     }
   }
   if (rate < 0.2) {
     return {
       color: 'var(--status-warning)',
-      label: 'Tight',
-      hint: 'Between 10% and 20% of take-home is left over.',
+      label: 'Watch out',
+      hint: 'You are cutting it close — under 20% of take-home is left after baseline costs.',
       Icon: CircleAlert,
     }
   }
+  if (rate <= 0.5) {
+    return {
+      color: 'var(--status-good)',
+      label: 'Healthy',
+      hint: '20% to 50% of take-home is left after baseline costs.',
+      Icon: CircleCheck,
+    }
+  }
   return {
-    color: 'var(--status-good)',
-    label: 'Healthy',
-    hint: 'Over 20% of take-home is left after baseline costs.',
+    color: 'var(--accent)',
+    label: 'Very high savings',
+    hint: 'Over half of take-home is left. Consider investing more, upgrading housing, or spending more intentionally if these costs reflect your real lifestyle.',
     Icon: CircleCheck,
   }
 }
