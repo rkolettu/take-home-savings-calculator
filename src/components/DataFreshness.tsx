@@ -22,9 +22,9 @@ const items = [
     icon: Home,
   },
   {
-    label: 'Living-cost indexes',
+    label: 'Living-cost data',
     value: liveData.costIndexPeriod,
-    detail: 'USDA + BLS/FRED',
+    detail: 'EIA + USDA + BLS/FRED',
     icon: ShoppingBasket,
   },
   {
@@ -90,10 +90,10 @@ export function DataFreshness() {
         >
           <div className="space-y-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
             <p>
-              Living-cost defaults are cached, versioned benchmarks rather than live browser API calls. Housing keeps each metro’s housing-tier baseline and moves it with Zillow ZORI. Groceries use a USDA Moderate-Cost single-adult benchmark adjusted with BLS food-at-home prices; utility, transportation, and discretionary benchmarks retain their metro-specific baselines and are updated over time with relevant BLS price indexes via FRED. If a source is unavailable or fails validation, the last known good data remains in use.
+              Living-cost defaults are cached, versioned benchmarks rather than live browser API calls. Housing keeps each metro’s housing-tier baseline and moves it with Zillow ZORI. Groceries use a USDA Moderate-Cost single-adult benchmark adjusted with BLS food-at-home prices. Electricity now uses U.S. EIA residential average monthly bills by state, scaled to represent a single renter and brought forward with current utility-price data; water, gas, trash, and home internet remain modeled from each metro’s utility baseline. Transportation and discretionary benchmarks retain their metro-specific baselines and are updated with relevant BLS price indexes via FRED. If a source is unavailable or fails validation, the last known good data remains in use.
             </p>
             <p>
-              Tax rules are versioned separately and are not automatically inferred from new legislation. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.
+              Tax rules are versioned separately and are not automatically inferred from new legislation. The renter adjustment and non-electric utility share are model assumptions, not reported EIA statistics. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.
             </p>
             <p>
               Educational estimates only — not tax, investment, legal, or financial advice. Actual results may differ based on credits, deductions, benefits, withholding, residency, local rules, personal spending, and future tax-law changes. Verify important decisions with official sources or a qualified professional.
