@@ -1,11 +1,4 @@
-import {
-  ArrowLeftRight,
-  Check,
-  Clipboard,
-  Download,
-  RotateCcw,
-  TriangleAlert,
-} from 'lucide-react'
+import { Check, Clipboard, Download, RotateCcw, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 interface HeaderActionsProps {
@@ -73,19 +66,6 @@ export function HeaderActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <a
-        href="#compare"
-        className={`${buttonClass} no-underline`}
-        style={{
-          borderColor: 'var(--border)',
-          background: 'var(--surface-2)',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        <ArrowLeftRight className="size-3.5" />
-        <span className="hidden sm:inline">Compare</span>
-      </a>
-
       <button
         type="button"
         onClick={copy}
