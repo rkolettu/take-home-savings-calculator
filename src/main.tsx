@@ -23,15 +23,20 @@ function Root() {
     }
 
     const syncHash = () => setHash(window.location.hash)
+    const openCompare = () => setShowCompare(true)
     window.addEventListener('hashchange', syncHash)
-    return () => window.removeEventListener('hashchange', syncHash)
+    window.addEventListener('open-compare', openCompare)
+    return () => {
+      window.removeEventListener('hashchange', syncHash)
+      window.removeEventListener('open-compare', openCompare)
+    }
   }, [])
 
   const onProjection = hash === '#projection'
 
   return (
     <>
-      <App onOpenCompare={() => setShowCompare(true)} />
+      <App />
       {!onProjection && showCompare && (
         <CompareModal onClose={() => setShowCompare(false)} />
       )}
