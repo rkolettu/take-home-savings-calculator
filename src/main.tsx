@@ -1,4 +1,3 @@
-import { ArrowLeftRight } from 'lucide-react'
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -32,24 +31,10 @@ function Root() {
 
   return (
     <>
-      <App />
-
-      {!onProjection && !showCompare && (
-        <button
-          type="button"
-          onClick={() => setShowCompare(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 sm:bottom-6 sm:right-6"
-          aria-label="Compare up to three metro and income scenarios"
-        >
-          <ArrowLeftRight className="size-4" />
-          Compare scenarios
-          <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-            up to 3
-          </span>
-        </button>
+      <App onOpenCompare={() => setShowCompare(true)} />
+      {!onProjection && showCompare && (
+        <CompareModal onClose={() => setShowCompare(false)} />
       )}
-
-      {showCompare && <CompareModal onClose={() => setShowCompare(false)} />}
     </>
   )
 }
