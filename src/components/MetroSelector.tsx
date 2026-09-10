@@ -7,7 +7,8 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Metro } from '../data/metroData'
-import { METROS, groupByRegion, monthlyCostOfLiving } from '../data/metroData'
+import { METROS, groupByRegion } from '../data/metroData'
+import { costsFromMetro, totalCost } from '../lib/costs'
 import { usd } from '../lib/format'
 
 interface MetroSelectorProps {
@@ -247,7 +248,7 @@ export function MetroSelector({
                             </span>
                           </span>
                           <span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">
-                            {usd(monthlyCostOfLiving(metro))}/mo
+                            {usd(totalCost(costsFromMetro(metro, 'one_bed')))}/mo
                           </span>
                         </button>
                       </li>
