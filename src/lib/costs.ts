@@ -1,3 +1,5 @@
+import { USE_AUTOMATIC_COST_UPDATES } from '../data/costDataConfig'
+import sourcedCostsJson from '../data/sourcedCosts.json'
 import type { HousingTier, Metro } from '../data/types'
 import { housingForTier } from '../data/metros'
 
@@ -27,6 +29,19 @@ export interface CostCategory {
   /** Which categorical series slot this line item owns. */
   seriesVar: string
 }
+
+interface SourcedCostData {
+  dataVersion: string
+  categoryMultipliers: Record<string, number>
+  housingMultipliers: Record<string, number>
+}
+
+const sourcedCosts = sourcedCostsJson as SourcedCostData
+
+/** Exposed so persistence can tell when a stored default predates a data refresh. */
+export const COST_DATA_VERSION = USE_AUTOMATIC_COST_UPDATES
+  ? sourcedCosts.dataVersion
+  : 'legacy'
 
 export const COST_CATEGORIES: CostCategory[] = [
   {
@@ -71,8 +86,18 @@ export const COST_CATEGORIES: CostCategory[] = [
   },
 ]
 
-/** The metro's baseline basket with housing taken from the chosen tier. */
-export function costsFromMetro(
+function safeMultiplier(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1
+  // A bad upstream file can never multiply a user's budget into nonsense.
+  return value >= 0.5 && value <= 1.5 ? value : 1
+}
+
+function adjusted(value: number, multiplier: number): number {
+  return Math.max(0, Math.round(value * multiplier))
+}
+
+/** Exact pre-upgrade benchmarks. This is also the one-switch rollback path. */
+export function legacyCostsFromMetro(
   metro: Metro,
   tier: HousingTier = 'roommate',
 ): CostBreakdown {
@@ -85,16 +110,63 @@ export function costsFromMetro(
   }
 }
 
+/**
+ * The metro's current baseline basket. The original metro values stay intact;
+ * the generated source layer only applies bounded multipliers on top. If the
+ * source layer is disabled, stale, missing, or malformed, this returns the
+ * original benchmarks exactly.
+ */
+export function costsFromMetro(
+  metro: Metro,
+  tier: HousingTier = 'roommate',
+): CostBreakdown {
+  const legacy = legacyCostsFromMetro(metro, tier)
+  if (!USE_AUTOMATIC_COST_UPDATES) return legacy
+
+  return {
+    housing: adjusted(
+      legacy.housing,
+      safeMultiplier(sourcedCosts.housingMultipliers[metro.id]),
+    ),
+    utilities: adjusted(
+      legacy.utilities,
+      safeMultiplier(sourcedCosts.categoryMultipliers.utilities),
+    ),
+    groceries: adjusted(
+      legacy.groceries,
+      safeMultiplier(sourcedCosts.categoryMultipliers.groceries),
+    ),
+    transport: adjusted(
+      legacy.transport,
+      safeMultiplier(sourcedCosts.categoryMultipliers.transport),
+    ),
+    discretionary: adjusted(
+      legacy.discretionary,
+      safeMultiplier(sourcedCosts.categoryMultipliers.discretionary),
+    ),
+  }
+}
+
 export function totalCost(costs: CostBreakdown): number {
   return COST_CATEGORIES.reduce((sum, c) => sum + costs[c.key], 0)
 }
 
-/** True when nothing has been hand-edited away from the tier's benchmark. */
+/** True when nothing has been hand-edited away from the current benchmark. */
 export function costsMatchDefaults(
   costs: CostBreakdown,
   metro: Metro,
   tier: HousingTier = 'roommate',
 ): boolean {
   const defaults = costsFromMetro(metro, tier)
+  return COST_CATEGORIES.every((c) => costs[c.key] === defaults[c.key])
+}
+
+/** Used only to migrate existing localStorage from the pre-source baseline. */
+export function costsMatchLegacyDefaults(
+  costs: CostBreakdown,
+  metro: Metro,
+  tier: HousingTier = 'roommate',
+): boolean {
+  const defaults = legacyCostsFromMetro(metro, tier)
   return COST_CATEGORIES.every((c) => costs[c.key] === defaults[c.key])
 }
