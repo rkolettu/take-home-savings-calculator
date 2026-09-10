@@ -1,4 +1,10 @@
-import { Check, ChevronsUpDown, MapPin, Search } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Check,
+  ChevronsUpDown,
+  MapPin,
+  Search,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Metro } from '../data/metroData'
 import { METROS, groupByRegion, monthlyCostOfLiving } from '../data/metroData'
@@ -7,6 +13,7 @@ import { usd } from '../lib/format'
 interface MetroSelectorProps {
   metroId: string
   onChange: (metroId: string) => void
+  showCompareButton?: boolean
 }
 
 /**
@@ -16,7 +23,11 @@ interface MetroSelectorProps {
  * lists every Midwest metro and "tx" lists the Texas ones. Results keep
  * their region headers, and regions with no matches drop out entirely.
  */
-export function MetroSelector({ metroId, onChange }: MetroSelectorProps) {
+export function MetroSelector({
+  metroId,
+  onChange,
+  showCompareButton = true,
+}: MetroSelectorProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
@@ -110,22 +121,41 @@ export function MetroSelector({ metroId, onChange }: MetroSelectorProps) {
       <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
         Metro
       </label>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2.5 text-left text-sm transition-colors hover:border-[var(--baseline)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
-        style={{ borderColor: 'var(--border)' }}
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          <MapPin className="size-4 shrink-0 text-[var(--text-muted)]" />
-          <span className="truncate font-medium text-[var(--text-primary)]">
-            {selected.city}, {selected.stateCode}
+      <div className="flex items-stretch gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2.5 text-left text-sm transition-colors hover:border-[var(--baseline)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <MapPin className="size-4 shrink-0 text-[var(--text-muted)]" />
+            <span className="truncate font-medium text-[var(--text-primary)]">
+              {selected.city}, {selected.stateCode}
+            </span>
           </span>
-        </span>
-        <ChevronsUpDown className="size-4 shrink-0 text-[var(--text-muted)]" />
-      </button>
+          <ChevronsUpDown className="size-4 shrink-0 text-[var(--text-muted)]" />
+        </button>
+
+        {showCompareButton && (
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event('open-compare'))}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-colors hover:brightness-95 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--accent) 32%, var(--border))',
+              background: 'var(--accent-soft)',
+              color: 'var(--accent)',
+            }}
+            aria-label="Compare this metro with up to two other scenarios"
+          >
+            <ArrowLeftRight className="size-4" />
+            <span className="hidden sm:inline">Compare</span>
+          </button>
+        )}
+      </div>
 
       {open && (
         <div
