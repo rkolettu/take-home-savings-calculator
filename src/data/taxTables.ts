@@ -252,10 +252,10 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
   UT: {
     stateCode: 'UT',
     name: 'Utah',
-    vintage: 2025,
-    confidence: 'carried-from-2025',
+    vintage: 2026,
+    confidence: 'published-2026',
     kind: 'flat',
-    rate: 0.0455,
+    rate: 0.0445,
     standardDeduction: NO_DEDUCTION,
     personalExemption: NO_EXEMPTION,
     note: 'Utah applies its flat rate to federal AGI and then grants a taxpayer credit that phases out with income. The credit is not modelled, so this slightly OVERSTATES Utah tax at low and middle incomes.',
