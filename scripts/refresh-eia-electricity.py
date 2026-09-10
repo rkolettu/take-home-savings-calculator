@@ -4,6 +4,7 @@ import io
 import json
 import math
 import re
+import statistics
 import sys
 import urllib.request
 from pathlib import Path
@@ -36,6 +37,37 @@ def normalize(value: object) -> str:
     return re.sub(r"\s+", " ", str(value).strip())
 
 
+def state_code(value: object) -> str | None:
+    text = normalize(value)
+    if not text:
+        return None
+    # EIA occasionally appends footnote markers or superscript-style numbers.
+    text = re.sub(r"^[^A-Za-z]+", "", text)
+    text = re.sub(r"[^A-Za-z]+$", "", text)
+    text = re.sub(r"\s+\d+$", "", text).strip()
+    if text in STATE_CODES:
+        return STATE_CODES[text]
+    for name, code in STATE_CODES.items():
+        if text.startswith(f"{name} "):
+            return code
+    return None
+
+
+def number(value: object) -> float | None:
+    if isinstance(value, (int, float)):
+        result = float(value)
+    else:
+        text = normalize(value).replace(",", "").replace("$", "")
+        text = re.sub(r"[^0-9.\-]", "", text)
+        if not text or text in {"-", ".", "-."}:
+            return None
+        try:
+            result = float(text)
+        except ValueError:
+            return None
+    return result if math.isfinite(result) else None
+
+
 def download(url: str) -> bytes:
     request = urllib.request.Request(
         url,
@@ -47,43 +79,65 @@ def download(url: str) -> bytes:
         return response.read()
 
 
-def find_bill_column(rows: list[list[object]]) -> int:
-    # EIA's workbook has multi-row/merged headers. Search the first 25 rows for
-    # any cell that explicitly names the monthly-bill column.
+def find_state_column(rows: list[list[object]]) -> int:
+    width = max((len(row) for row in rows), default=0)
+    counts: list[tuple[int, int]] = []
+    for index in range(width):
+        count = sum(
+            1 for row in rows if index < len(row) and state_code(row[index]) is not None
+        )
+        counts.append((count, index))
+    count, index = max(counts, default=(0, -1))
+    if count < 45:
+        raise RuntimeError(f"Could not reliably identify EIA state column ({count} matches)")
+    return index
+
+
+def find_bill_column(rows: list[list[object]], state_col: int) -> int:
+    width = max((len(row) for row in rows), default=0)
+
+    # First prefer a column whose visible header says monthly bill.
+    header_candidates: set[int] = set()
     for row in rows[:25]:
         for index, value in enumerate(row):
             text = normalize(value).lower()
             if "monthly bill" in text or ("bill" in text and "dollar" in text):
-                return index
-    raise RuntimeError("Could not locate EIA average-monthly-bill column")
+                header_candidates.add(index)
 
+    def candidate_values(index: int) -> list[float]:
+        values: list[float] = []
+        for row in rows:
+            if state_col >= len(row) or index >= len(row):
+                continue
+            if state_code(row[state_col]) is None:
+                continue
+            value = number(row[index])
+            if value is not None and 40 <= value <= 400:
+                values.append(value)
+        return values
 
-def find_state_column(rows: list[list[object]], bill_col: int) -> int:
-    # Prefer an explicit state header. If merged headers hide it, choose the
-    # column containing the most exact U.S. state names.
-    for row in rows[:25]:
-        for index, value in enumerate(row):
-            text = normalize(value).lower()
-            if text in {"state", "census division and state", "census division/state"}:
-                return index
+    for index in sorted(header_candidates, reverse=True):
+        values = candidate_values(index)
+        if len(values) >= 45 and 60 <= statistics.median(values) <= 300:
+            return index
 
-    best_index = -1
-    best_count = 0
-    width = max((len(row) for row in rows), default=0)
+    # Merged Excel headers vary by edition. Infer the bill column from state
+    # rows: customer counts and kWh are much larger, while cents/kWh are much
+    # smaller; monthly residential bills cluster roughly in the $60-$300 range.
+    ranked: list[tuple[int, float, int]] = []
     for index in range(width):
-        if index == bill_col:
+        if index == state_col:
             continue
-        count = sum(
-            1
-            for row in rows
-            if index < len(row) and normalize(row[index]).rstrip("*") in STATE_CODES
-        )
-        if count > best_count:
-            best_count = count
-            best_index = index
-    if best_count < 20:
-        raise RuntimeError("Could not reliably identify EIA state-name column")
-    return best_index
+        values = candidate_values(index)
+        if len(values) < 45:
+            continue
+        median = statistics.median(values)
+        if 60 <= median <= 300:
+            ranked.append((len(values), median, index))
+    if not ranked:
+        raise RuntimeError("Could not locate EIA average-monthly-bill column")
+    ranked.sort(reverse=True)
+    return ranked[0][2]
 
 
 def workbook_year(rows: list[list[object]]) -> int | None:
@@ -104,22 +158,18 @@ def main() -> None:
     sheet = workbook.active
     rows = [list(row) for row in sheet.iter_rows(values_only=True)]
 
-    bill_col = find_bill_column(rows)
-    state_col = find_state_column(rows, bill_col)
+    state_col = find_state_column(rows)
+    bill_col = find_bill_column(rows, state_col)
     bills: dict[str, float] = {}
 
     for row in rows:
         if state_col >= len(row) or bill_col >= len(row):
             continue
-        state_name = normalize(row[state_col]).rstrip("*")
-        code = STATE_CODES.get(state_name)
+        code = state_code(row[state_col])
         if not code:
             continue
-        try:
-            bill = float(row[bill_col])
-        except (TypeError, ValueError):
-            continue
-        if not math.isfinite(bill) or bill < 30 or bill > 600:
+        bill = number(row[bill_col])
+        if bill is None or bill < 40 or bill > 400:
             continue
         bills[code] = round(bill, 2)
 
@@ -137,10 +187,10 @@ def main() -> None:
             "sourceUrl": EIA_BILL_URL,
             # The EIA figure is for an average residential customer, while this
             # app models one renter. The factor is intentionally explicit and
-            # editable in the generated data rather than hidden in application code.
+            # editable in generated data rather than hidden in application code.
             "singleRenterFactor": electricity.get("singleRenterFactor", 0.60),
-            # The remainder of the utilities basket (water, trash, gas and home
-            # internet) stays anchored to the metro-specific modeled benchmark.
+            # Water, trash, gas and home internet stay anchored to the existing
+            # metro-specific modeled utility benchmark.
             "modeledNonElectricShare": electricity.get("modeledNonElectricShare", 0.45),
         }
     )
