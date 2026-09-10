@@ -1,7 +1,6 @@
 name: Refresh live data
 
 on:
-  push:
   schedule:
     # Source datasets are monthly. A weekly check is frequent enough while
     # keeping external traffic tiny and independent of website visitors.
