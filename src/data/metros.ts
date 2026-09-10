@@ -132,7 +132,7 @@ const METRO_SEEDS: MetroSeed[] = [
     discretionary: 590,
     localIncomeTaxRate: 0.03735,
     localTaxNote:
-      'Philadelphia resident wage tax, 3.735% effective July 1, 2026, applied to gross wages with no deductions.',
+      'Philadelphia resident wage tax: 3.735%, effective July 1, 2026 (fiscal-year rate; applied to the full annual wage estimate).',
   },
   {
     id: 'hartford-ct',
@@ -613,13 +613,9 @@ const METRO_SEEDS: MetroSeed[] = [
     transport: 140,
     discretionary: 600,
     localIncomeTaxRate: 0.023,
-    localIncomeTaxThreshold: {
-      single: 125_000,
-      marriedJoint: 200_000,
-      headOfHousehold: 125_000,
-    },
+    localIncomeTaxThreshold: { single: 125_000, marriedJoint: 200_000, headOfHousehold: 125_000 },
     localTaxNote:
-      'Combined Metro Supportive Housing and Multnomah County Preschool for All taxes. The income threshold is now modelled at $125,000 for single/head-of-household and $200,000 for joint filers; the combined 2.3% rate remains a simplified approximation above the threshold.',
+      'Portland Metro / Multnomah local tax is approximated at 2.3% above a modelled gross-income threshold of $125,000 single/head of household or $200,000 joint. The separate tax bases, upper tier and Metro inflation adjustment are not modelled.',
   },
 ]
 

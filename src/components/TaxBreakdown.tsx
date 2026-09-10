@@ -153,6 +153,15 @@ export function TaxBreakdown({ takeHome, metro }: TaxBreakdownProps) {
             </tbody>
           </table>
 
+          <p className="mt-3 flex gap-1.5 text-xs text-[var(--text-muted)]">
+            <Info className="mt-px size-3.5 shrink-0" />
+            <span>
+              Housing benchmark: {metro.housingConfidence === 'interpolated'
+                ? 'Interpolated — prior benchmark scaled by 0.8829; not a measured asking rent.'
+                : 'Sourced — Zumper median 1BR asking rent, August 2026.'}
+            </span>
+          </p>
+
           {spec?.confidence === 'carried-from-2025' && (
             <p className="mt-3 flex gap-1.5 text-xs text-[var(--text-muted)]">
               <Info className="mt-px size-3.5 shrink-0" />

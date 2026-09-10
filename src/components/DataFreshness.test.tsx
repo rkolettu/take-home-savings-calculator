@@ -1,0 +1,39 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+
+// Render the actual footer against enabled/disabled and inert/active snapshots.
+afterEach(() => {
+  vi.resetModules()
+  vi.doUnmock('../data/costDataConfig')
+  vi.doUnmock('../data/sourcedCosts.json')
+  vi.doUnmock('../data/liveData.json')
+})
+
+describe('cost provenance labels', () => {
+  it.each([
+    [false, 1.1, false],
+    [true, 1, false],
+    [true, 1.1, true],
+    [true, 1.000003, false],
+    [true, 1.5, false],
+  ])('gates sourced labels with flag=%s multiplier=%s', async (enabled, multiplier, sourced) => {
+    vi.doMock('../data/costDataConfig', () => ({ USE_AUTOMATIC_COST_UPDATES: enabled }))
+    vi.doMock('../data/sourcedCosts.json', () => ({ default: {
+      housingMultipliers: { 'new-york-ny': multiplier },
+      categoryMultipliers: { groceries: 1, utilities: 1, transport: 1, discretionary: 1 },
+    } }))
+    vi.doMock('../data/liveData.json', () => ({ default: {
+      taxes: '2026 rules', rentEstimates: 'HUD FMR-indexed · FY2027',
+      rentSource: 'Zumper Aug 2026 anchor, HUD Fair Market Rent 1BR drift',
+      costModel: 'Anchored benchmarks, FMR-indexed', inflationRate: 0.033,
+      inflationPeriod: 'July 2026', dataUpdated: 'September 2026',
+    } }))
+    const { DataFreshness } = await import('./DataFreshness')
+    const html = renderToStaticMarkup(<DataFreshness />)
+    expect(html.includes('HUD FMR-indexed')).toBe(sourced)
+    expect(html.includes('Anchored benchmarks, FMR-indexed')).toBe(sourced)
+    expect(html.includes('Market benchmark estimates')).toBe(!sourced)
+    expect(html).toContain('2026 rules')
+    expect(html).toContain('3.3% CPI-U')
+  })
+})

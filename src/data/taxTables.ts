@@ -263,8 +263,8 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
   CA: {
     stateCode: 'CA',
     name: 'California',
-    vintage: 2026,
-    confidence: 'published-2026',
+    vintage: 2025,
+    confidence: 'carried-from-2025',
     kind: 'progressive',
     standardDeduction: {
       single: 5_706,
@@ -307,7 +307,7 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.123 },
       ],
     },
-    note: 'California FTB 2026 estimated-tax instructions publish the 2026 standard deduction and direct filers to use the 2025 Form 540 tax table; those official instructed figures are modelled here. A further 1% Mental Health Services surcharge above $1M is not modelled.',
+    note: 'FTB 2026 estimated-tax instructions explicitly use the 2025 schedules: https://www.ftb.ca.gov/forms/2026/2026-540-es-instructions.pdf. These are verified 2025 figures carried into 2026 estimates, not published 2026 indexed brackets. Personal exemption credits and the 1% surcharge above $1M remain unmodelled.',
   },
   NY: {
     stateCode: 'NY',
@@ -356,7 +356,7 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.109 },
       ],
     },
-    note: 'New York reduced its first five marginal rates for tax year 2026. New York City residents owe an additional local income tax; see `localIncomeTaxRate` on the New York metro entry.',
+    note: '2026 IT-2105-I: https://www.tax.ny.gov/pdf/current_forms/it/it2105i.pdf. Standard deductions are unchanged; dependent exemptions and high-income tax-benefit recapture are not modelled. New York City residents owe a separate local income tax.',
   },
   DC: {
     stateCode: 'DC',
@@ -467,8 +467,11 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.0985 },
       ],
     },
-    note: 'Minnesota 2026 brackets and standard deductions are the published inflation-adjusted amounts.',
+    note: '2026 brackets and deductions: https://www.revenue.state.mn.us/minnesota-income-tax-rates-and-brackets. No personal exemption; dependent exemptions and high-income deduction reductions are not modelled.',
   },
+  /* --- Added with the 45-metro expansion -------------------------- *
+   * Each spec records its verified vintage; remaining carried figures
+   * and deliberate approximations are noted below.                   */
 
   IN: {
     stateCode: 'IN',
@@ -507,15 +510,11 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
     confidence: 'published-2026',
     kind: 'progressive',
     standardDeduction: {
-      single: 3_400,
-      marriedJoint: 6_800,
-      headOfHousehold: 6_800,
+      single: 3_350,
+      marriedJoint: 6_700,
+      headOfHousehold: 6_700,
     },
-    personalExemption: {
-      single: 3_200,
-      marriedJoint: 6_400,
-      headOfHousehold: 3_200,
-    },
+    personalExemption: { single: 3_200, marriedJoint: 6_400, headOfHousehold: 3_200 },
     brackets: {
       single: [
         { upTo: 1_000, rate: 0.02 },
@@ -554,7 +553,7 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.065 },
       ],
     },
-    note: 'Maryland 2026 withholding guidance reflects an indexed $3,400 standard deduction ($6,800 joint/HOH). The $3,200 personal exemption is modelled without its income phase-out. Maryland local income tax varies by county; this app models Baltimore City only.',
+    note: '2026 individual PV worksheet: https://www.marylandcomptroller.gov/content/dam/mdcomp/tax/forms/worksheets/2026-pv-worksheet.pdf. Uses its $3,350/$6,700 deductions (the separate employer guide uses $3,400 for withholding). The $3,200 personal exemption per adult is modelled without its income phase-out, understating tax above $100,000 single or $150,000 joint/head of household. Only Baltimore City local tax is represented.',
   },
   OH: {
     stateCode: 'OH',
@@ -624,7 +623,7 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.047 },
       ],
     },
-    note: 'Missouri 2026 estimated-tax instructions publish the indexed bracket thresholds. Missouri uses the federal standard deduction; St. Louis and Kansas City levy separate earnings taxes.',
+    note: '2026 annual brackets and deductions: https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf. Missouri matches the federal standard deduction and uses the same brackets for every filing status. No personal exemption. Federal income tax deduction is not modelled. St. Louis and Kansas City levy separate earnings taxes.',
   },
   WI: {
     stateCode: 'WI',
@@ -658,7 +657,7 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.0765 },
       ],
     },
-    note: "Wisconsin's published 2026 brackets are modelled. Its sliding, income-tested standard deduction is intentionally modelled as zero, which OVERSTATES Wisconsin tax at low incomes.",
+    note: '2026 Form 1-ES: https://www.revenue.wi.gov/TaxForms2026/2026-Form1-ES-Inst.pdf. The income-tested standard deduction is modelled as zero, which OVERSTATES tax below its phase-out (about $136,453 single/head of household and $159,690 joint). Personal exemptions remain $700 per person.',
   },
   VA: {
     stateCode: 'VA',
@@ -731,7 +730,7 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.0699 },
       ],
     },
-    note: 'Connecticut published its 2026 estimated-tax schedule. Its income-tested personal exemption is intentionally modelled as zero, which OVERSTATES tax at lower incomes; the high-income recapture provision is also not modelled.',
+    note: '2026 CT-1040ES: https://portal.ct.gov/-/media/drs/forms/2025/income/ct1040es-flat0126.pdf. Brackets are unchanged and there is no standard deduction. The income-tested personal exemption is modelled as zero, which OVERSTATES tax below its phase-out ($44,000 single, $71,000 joint, $56,000 head of household). The rate phase-out add-back, recapture and personal tax credits are not modelled.',
   },
   DE: {
     stateCode: 'DE',
@@ -774,6 +773,6 @@ export const STATE_TAX: Record<string, StateTaxSpec> = {
         { upTo: Infinity, rate: 0.066 },
       ],
     },
-    note: 'Delaware applies the same bracket thresholds to every filing status. The standard deduction is $3,250 for single/head-of-household and $6,500 for married filing jointly. Wilmington levies a city wage tax; see that metro entry.',
+    note: '2026 PIT-EST: https://revenuefiles.delaware.gov/2025/PITForms_Instructions/Instructions/PIT-EST_Instructions_2026-01.pdf. Standard deduction is $3,250 single/head of household and $6,500 joint; brackets are unchanged. The $110 personal credit is not an income exemption and is unmodelled. Wilmington levies a city wage tax.',
   },
 }

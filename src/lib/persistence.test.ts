@@ -165,6 +165,9 @@ describe('sanitising corrupt entries', () => {
   it('reads a pre-tier budget that still uses the housing1BR key', () => {
     write(
       JSON.stringify({
+        metroId: 'austin-tx',
+        housingTier: 'one_bed',
+        _costsEdited: true,
         costs: {
           housing1BR: 1_260,
           utilities: 165,

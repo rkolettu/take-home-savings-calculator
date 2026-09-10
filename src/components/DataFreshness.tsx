@@ -10,14 +10,11 @@ import { USE_AUTOMATIC_COST_UPDATES } from '../data/costDataConfig'
 import liveData from '../data/liveData.json'
 import sourcedCosts from '../data/sourcedCosts.json'
 
-const multipliers = [
-  ...Object.values(sourcedCosts.categoryMultipliers),
-  ...Object.values(sourcedCosts.housingMultipliers),
-]
-const hasActiveMultiplier = multipliers.some(
-  (multiplier) => Math.abs(multiplier - 1) > 0.0001,
-)
-const sourcedDataActive = USE_AUTOMATIC_COST_UPDATES && hasActiveMultiplier
+// Ignore rounding noise from dividing raw source values by rounded anchors.
+const hasHousingDrift = USE_AUTOMATIC_COST_UPDATES &&
+  Object.values(sourcedCosts.housingMultipliers).some(
+    (value) => Number.isFinite(value) && value >= 0.75 && value <= 1.25 && Math.abs(value - 1) > 0.00001,
+  )
 
 const items = [
   {
@@ -28,14 +25,14 @@ const items = [
   },
   {
     label: 'Rent',
-    value: sourcedDataActive ? sourcedCosts.housingPeriod : liveData.rentEstimates,
-    detail: sourcedDataActive ? 'Sourced-data index active' : liveData.rentSource,
+    value: hasHousingDrift ? liveData.rentEstimates : 'Market benchmark estimates · Aug 2026',
+    detail: hasHousingDrift ? liveData.rentSource : 'Median 1BR asking rents, single-source benchmark',
     icon: Home,
   },
   {
     label: 'Living-cost data',
-    value: sourcedDataActive ? liveData.costIndexPeriod : liveData.costModel,
-    detail: sourcedDataActive ? 'EIA + USDA + BLS/FRED' : 'Modeled category benchmarks',
+    value: hasHousingDrift ? liveData.costModel : 'Benchmark estimates, inflation-indexed',
+    detail: hasHousingDrift ? liveData.costIndexPeriod : 'Market benchmarks · Aug 2026',
     icon: ShoppingBasket,
   },
   {
@@ -101,7 +98,13 @@ export function DataFreshness() {
         >
           <div className="space-y-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
             <p>
-              Current living-cost defaults are benchmark estimates, not live browser API results. One-bedroom rent anchors use August 2026 median asking-rent benchmarks where available; five uncovered metros use an explicitly labelled interpolation. Utilities, groceries, transportation, and discretionary spending remain modeled category benchmarks. A generated sourced-cost indexing layer is retained in the repository but is disabled until it can add validated movement beyond its base period without implying that it establishes the underlying price level.
+              Living-cost defaults are cached, versioned benchmarks. {hasHousingDrift
+                ? `${liveData.rentSource}. `
+                : 'Housing uses August 2026 asking-rent benchmarks; five markets are interpolated. '}
+              {hasHousingDrift
+                ? `${liveData.costModel}. `
+                : 'Automatic cost updates are disabled or have no validated drift; the benchmark basket is used. '}
+              Other housing tiers are derived from the 1BR anchor. These are planning estimates, not live quotes.
             </p>
             <p>
               Tax rules are versioned separately and are not automatically inferred from new legislation. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.

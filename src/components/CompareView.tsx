@@ -73,6 +73,7 @@ export function CompareView() {
           filingStatus: scenario.filingStatus,
           stateCode: metro.stateCode,
           localIncomeTaxRate: metro.localIncomeTaxRate,
+          localIncomeTaxThreshold: metro.localIncomeTaxThreshold,
         })
         const monthlyCost = totalCost(costsFromMetro(metro, scenario.housingTier))
         const surplus = takeHome.netMonthly - monthlyCost

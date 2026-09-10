@@ -195,13 +195,34 @@ rewrites the others. Presets cover 100% of each vehicle plus a balanced mix.
 
 **This tool is for exploration, not for filing or for financial advice.**
 
-The August 2026 one-bedroom rent anchors are market benchmark estimates: 40
-metros are directly covered by the cited single-source median asking-rent
-benchmark and five are interpolated as described above. The remaining
-cost-of-living categories are modelled estimates assembled to be directionally
-useful and internally consistent for metro comparison; no individual utility,
-grocery, transportation, or discretionary figure should be quoted as an
-authoritative statistic.
+Housing anchors use median 1BR asking rents from the Zumper National Rent
+Report, August 2026, for 40 metros. Stamford, Hartford, Wilmington, Palm Beach
+and Naples are interpolated: prior hand benchmarks multiplied by 0.8829 (the
+mean new/old ratio across the 40 covered metros). Other housing tiers remain
+derived from the 1BR anchor. Non-housing costs remain benchmark estimates.
+Automatic cost updates are disabled until validated per-metro 1BR drift over
+these anchors is available. The July 2026 housing base/latest snapshots are
+identical; a ratio index cannot correct a wrong anchor level. Sourced labels
+require enabled updates and validated drift, excluding rounding noise.
+
+CT and WI income-tested deductions remain modelled as zero, and Utah's
+unmodelled taxpayer credit also overstates tax at low incomes. Ohio work-city
+credits are assumed away. Maryland models only Baltimore City of its 24 local
+jurisdictions; its personal exemption phase-out is unmodelled. NYC retains a
+flat 3.76% approximation against the actual 3.078–3.876% range. Portland uses
+the specified 2.3% approximation only above $125,000 single/head of household
+or $200,000 joint; separate tax bases, upper tiers and threshold indexing are
+not modelled. Philadelphia uses the resident rate effective July 1, 2026
+across the annual estimate, not a blended calendar-year rate.
+
+NY, MN, MD, WI, CT, DE and MO use the cited 2026 revenue-department schedules
+in `src/data/taxTables.ts`. California uses verified 2025 figures as directed
+by the FTB's 2026 estimated-tax instructions and stays labelled
+`carried-from-2025`; published 2026 indexed brackets could not be verified.
+Maryland follows the 2026 individual PV worksheet's $3,350/$6,700 standard
+deductions, not the employer withholding guide's $3,400 allowance. Delaware's
+verified standard deduction is $3,250 single/head of household or $6,500
+joint, and its $110 personal credit remains unmodelled.
 
 Not modelled anywhere: many tax credits and phase-outs, itemised deductions,
 pre-tax retirement or HSA contributions, employer matching, self-employment
