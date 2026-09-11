@@ -34,7 +34,7 @@ describe('cost provenance labels', () => {
     expect(html.includes('HUD FMR-indexed')).toBe(sourced)
     expect(html.includes('Anchored benchmarks, FMR-indexed')).toBe(sourced)
     expect(html.includes('Aug 2026 asking-rent benchmarks')).toBe(!sourced)
-    expect(html).toContain('HUD FMR annual indexing enabled')
+    expect(html.includes('HUD FMR annual indexing enabled')).toBe(!sourced)
     expect(html).toContain('2026 rules')
     expect(html).toContain('3.4% CPI-U')
     expect(html).toContain('Data snapshot: September 2026')
