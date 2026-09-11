@@ -1,4 +1,7 @@
-import { USE_AUTOMATIC_COST_UPDATES } from '../data/costDataConfig'
+import {
+  USE_AUTOMATIC_HOUSING_UPDATES,
+  USE_AUTOMATIC_NON_HOUSING_UPDATES,
+} from '../data/costDataConfig'
 import sourcedCostsJson from '../data/sourcedCosts.json'
 import type { HousingTier, Metro } from '../data/types'
 import { housingForTier } from '../data/metros'
@@ -43,15 +46,22 @@ interface SourcedCostData {
   dataVersion: string
   categoryMultipliers: Record<string, number>
   housingMultipliers: Record<string, number>
+  housingAnchorYear?: number
+  housingPeriod?: string
   electricity?: ElectricitySourceData
 }
 
 const sourcedCosts = sourcedCostsJson as SourcedCostData
 
 /** Exposed so persistence can tell when a stored default predates a data refresh. */
-export const COST_DATA_VERSION = USE_AUTOMATIC_COST_UPDATES
-  ? sourcedCosts.dataVersion
-  : 'legacy'
+const housingDataVersion = `hud-${sourcedCosts.housingAnchorYear ?? 'anchor'}-${sourcedCosts.housingPeriod ?? 'unknown'}`
+export const COST_DATA_VERSION = USE_AUTOMATIC_HOUSING_UPDATES
+  ? USE_AUTOMATIC_NON_HOUSING_UPDATES
+    ? `${housingDataVersion}_${sourcedCosts.dataVersion}`
+    : housingDataVersion
+  : USE_AUTOMATIC_NON_HOUSING_UPDATES
+    ? sourcedCosts.dataVersion
+    : 'legacy'
 
 export const COST_CATEGORIES: CostCategory[] = [
   {
@@ -181,23 +191,29 @@ function sourcedUtilities(metro: Metro, legacyUtilities: number): number {
 }
 
 /**
- * The metro's current baseline basket. The original metro values stay intact;
- * the generated source layer only applies bounded adjustments on top. If the
- * source layer is disabled, stale, missing, or malformed, this returns the
- * original benchmarks exactly.
+ * The metro's current baseline basket. Housing can follow validated HUD drift
+ * independently from the other sourced cost categories. This keeps the August
+ * 2026 asking-rent anchors intact today while allowing a later HUD fiscal year
+ * to update rent automatically without also changing groceries or utilities.
  */
 export function costsFromMetro(
   metro: Metro,
   tier: HousingTier = 'roommate',
 ): CostBreakdown {
   const legacy = legacyCostsFromMetro(metro, tier)
-  if (!USE_AUTOMATIC_COST_UPDATES) return legacy
+  const housing = USE_AUTOMATIC_HOUSING_UPDATES
+    ? adjusted(
+        legacy.housing,
+        safeMultiplier(sourcedCosts.housingMultipliers[metro.id]),
+      )
+    : legacy.housing
+
+  if (!USE_AUTOMATIC_NON_HOUSING_UPDATES) {
+    return { ...legacy, housing }
+  }
 
   return {
-    housing: adjusted(
-      legacy.housing,
-      safeMultiplier(sourcedCosts.housingMultipliers[metro.id]),
-    ),
+    housing,
     utilities: sourcedUtilities(metro, legacy.utilities),
     groceries: adjusted(
       legacy.groceries,
