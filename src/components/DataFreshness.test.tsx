@@ -25,15 +25,16 @@ describe('cost provenance labels', () => {
     vi.doMock('../data/liveData.json', () => ({ default: {
       taxes: '2026 rules', rentEstimates: 'HUD FMR-indexed · FY2027',
       rentSource: 'Zumper Aug 2026 anchor, HUD Fair Market Rent 1BR drift',
-      costModel: 'Anchored benchmarks, FMR-indexed', inflationRate: 0.033,
-      inflationPeriod: 'July 2026', dataUpdated: 'September 2026',
+      costModel: 'Anchored benchmarks, FMR-indexed', costIndexPeriod: 'FY2027',
+      inflationRate: 0.034, inflationPeriod: 'July 2026', dataUpdated: 'September 2026',
     } }))
     const { DataFreshness } = await import('./DataFreshness')
     const html = renderToStaticMarkup(<DataFreshness />)
     expect(html.includes('HUD FMR-indexed')).toBe(sourced)
     expect(html.includes('Anchored benchmarks, FMR-indexed')).toBe(sourced)
-    expect(html.includes('Market benchmark estimates')).toBe(!sourced)
+    expect(html.includes('Aug 2026 asking-rent benchmarks')).toBe(!sourced)
     expect(html).toContain('2026 rules')
-    expect(html).toContain('3.3% CPI-U')
+    expect(html).toContain('3.4% CPI-U')
+    expect(html).toContain('Data snapshot: September 2026')
   })
 })
