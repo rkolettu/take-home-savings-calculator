@@ -3,7 +3,6 @@ import { pathToFileURL } from 'node:url'
 
 const LIVE_DATA_PATH = new URL('../src/data/liveData.json', import.meta.url)
 const COST_DATA_PATH = new URL('../src/data/sourcedCosts.json', import.meta.url)
-const COST_CONFIG_PATH = new URL('../src/data/costDataConfig.ts', import.meta.url)
 const HUD_API_BASE = 'https://www.huduser.gov/hudapi/public/fmr'
 const HUD_ANCHOR_YEAR = 2027
 const HUD_REQUEST_INTERVAL_MS = 1_100
@@ -304,19 +303,6 @@ async function main() {
     await writeFile(COST_DATA_PATH, nextCostsText)
     changed = true
   }
-  if (hasHousingDrift) {
-    const existingConfig = await readFile(COST_CONFIG_PATH, 'utf8')
-    const enabledConfig = existingConfig.replace(
-      'export const USE_AUTOMATIC_COST_UPDATES = false',
-      'export const USE_AUTOMATIC_COST_UPDATES = true',
-    )
-    if (enabledConfig !== existingConfig) {
-      await writeFile(COST_CONFIG_PATH, enabledConfig)
-      changed = true
-    } else if (!existingConfig.includes('export const USE_AUTOMATIC_COST_UPDATES = true')) {
-      throw new Error('Could not enable USE_AUTOMATIC_COST_UPDATES')
-    }
-  }
 
   if (!changed) {
     console.log('No HUD source data changed; keeping current generated files.')
@@ -327,6 +313,11 @@ async function main() {
   console.log(`HUD FY${currentYear} coverage: ${nextCosts.housingCoverage}/${Object.keys(HUD_METROS).length}`)
   console.log(
     `HUD multiplier range: ${Math.min(...multiplierValues).toFixed(6)}–${Math.max(...multiplierValues).toFixed(6)}`,
+  )
+  console.log(
+    hasHousingDrift
+      ? 'Validated HUD housing drift is active and will be applied automatically.'
+      : 'HUD housing updater is active; current fiscal-year multipliers remain at the anchor.',
   )
 }
 
