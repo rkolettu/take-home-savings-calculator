@@ -1,11 +1,4 @@
-import {
-  Check,
-  Clipboard,
-  Download,
-  Github,
-  RotateCcw,
-  TriangleAlert,
-} from 'lucide-react'
+import { Check, Clipboard, Download, RotateCcw, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 interface HeaderActionsProps {
@@ -17,7 +10,7 @@ interface HeaderActionsProps {
 type Feedback = 'idle' | 'copied' | 'copy-failed' | 'downloaded' | 'download-failed'
 
 const buttonClass =
-  'group flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-[transform,box-shadow,background-color,border-color,color] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]'
+  'group flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]'
 
 /**
  * Export and reset. Reset is destructive of everything the user has typed,
@@ -141,7 +134,7 @@ export function HeaderActions({
         }}
         aria-label="View the Take-Home Savings Calculator source code on GitHub"
       >
-        <Github className="size-3.5 transition-transform duration-150 group-hover:scale-105" />
+        <span className="font-semibold">&lt;/&gt;</span>
         <span className="hidden sm:inline">GitHub</span>
       </a>
 
