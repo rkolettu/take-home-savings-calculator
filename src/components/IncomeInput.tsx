@@ -48,7 +48,7 @@ export function IncomeInput({
           Gross annual salary
         </label>
         <div
-          className="flex items-center rounded-lg border bg-[var(--surface-2)] px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)]"
+          className="flex h-11 items-center rounded-lg border bg-[var(--surface-2)] px-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--surface-raised)_55%,transparent)] transition-[border-color,box-shadow,background-color] duration-150 hover:border-[var(--baseline)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)] focus-within:shadow-[var(--shadow-soft)]"
           style={{ borderColor: 'var(--border)' }}
         >
           <span className="text-sm text-[var(--text-muted)]">$</span>
@@ -71,7 +71,7 @@ export function IncomeInput({
           aria-label="Gross annual salary slider"
           className="mt-3 w-full"
         />
-        <div className="flex justify-between text-[11px] tabular-nums text-[var(--text-muted)]">
+        <div className="mt-0.5 flex justify-between text-[11px] tabular-nums text-[var(--text-muted)]">
           <span>$20k</span>
           <span>$500k</span>
         </div>
@@ -82,7 +82,7 @@ export function IncomeInput({
           Filing status
         </span>
         <div
-          className="grid grid-cols-3 gap-1 rounded-lg border bg-[var(--surface-2)] p-1"
+          className="grid grid-cols-3 gap-1 rounded-xl border bg-[var(--surface-2)] p-1 shadow-[inset_0_1px_2px_rgba(23,23,23,0.03)]"
           style={{ borderColor: 'var(--border)' }}
         >
           {FILING_OPTIONS.map((option) => {
@@ -95,13 +95,13 @@ export function IncomeInput({
                 aria-pressed={active}
                 aria-label={option.label}
                 onClick={() => onFilingStatusChange(option.value)}
-                className="flex items-center justify-center gap-1 rounded-md px-1.5 py-2 text-[11px] font-medium transition-colors sm:gap-1.5 sm:px-2 sm:text-[13px]"
+                className="flex items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-medium transition-[transform,background-color,box-shadow,color] duration-150 hover:bg-[var(--surface-raised)] active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)] sm:gap-1.5 sm:px-2 sm:text-[13px]"
                 style={{
                   background: active ? 'var(--surface-raised)' : 'transparent',
                   color: active
                     ? 'var(--text-primary)'
                     : 'var(--text-secondary)',
-                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  boxShadow: active ? 'var(--shadow-soft)' : 'none',
                 }}
               >
                 <Icon className="size-4 shrink-0" />
