@@ -6,8 +6,7 @@
  * level. Re-enable only after the source data advances beyond the base period
  * and the benchmark levels/provenance have been independently validated.
  */
-// Off: July 2026 is both the source base and latest period, so the housing
-// index cannot repair incorrect rent levels. Re-enable only after validated
-// per-metro 1BR drift is populated over the August 2026 asking-rent anchors
-// and at least one housing multiplier differs meaningfully from 1.0.
+// Off until a HUD year later than the FY2027 anchor produces validated
+// per-metro 1BR drift over the August 2026 asking-rent benchmarks and at least
+// one housing multiplier differs meaningfully from 1.0.
 export const USE_AUTOMATIC_COST_UPDATES = false

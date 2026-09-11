@@ -1,192 +1,63 @@
 import { readFile, writeFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 
 const LIVE_DATA_PATH = new URL('../src/data/liveData.json', import.meta.url)
 const COST_DATA_PATH = new URL('../src/data/sourcedCosts.json', import.meta.url)
+const COST_CONFIG_PATH = new URL('../src/data/costDataConfig.ts', import.meta.url)
+const HUD_API_BASE = 'https://www.huduser.gov/hudapi/public/fmr'
+const HUD_ANCHOR_YEAR = 2027
+const HUD_REQUEST_INTERVAL_MS = 1_100
 
-// The original metro figures remain the level baseline. Public datasets move
-// those figures forward over time, which avoids pretending a broad index is a
-// perfect one-bedroom/one-person price level for every city.
-const COST_BASE_PERIOD = '2026-07'
-const USDA_GROCERY_BASE_PERIOD = '2026-01'
-const USDA_MODERATE_SINGLE_ADULT_BASE = 431.64
-const LEGACY_GROCERY_REFERENCE = 480
-
-const ZILLOW_URL =
-  'https://files.zillowstatic.com/research/public_csvs/zori/Metro_zori_uc_sfrcondomfr_sm_month.csv'
-
-// FRED mirrors these BLS CPI series as public CSV downloads. This route does
-// not require a key or a metered API account, which keeps the scheduled job
-// independent of API quotas while preserving BLS as the underlying source.
-const BLS_SERIES = {
-  allItems: 'CPIAUCSL',
-  groceries: 'CUSR0000SAF11',
-  utilities: 'CUSR0000SAH2',
-  transport: 'CUSR0000SAT1',
-  discretionary: 'SUUR0000SAR',
-}
-
-function fredCsvUrl(seriesId) {
-  return `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`
-}
-
-/**
- * Zillow publishes MSA-level ZORI under a principal-city name. A few labels in
- * the calculator intentionally represent a broader nearby market, so those use
- * the closest defensible Zillow MSA proxy rather than fragile fuzzy matching.
- */
-const ZILLOW_METROS = {
-  'new-york-ny': ['New York', 'NY'],
-  'boston-ma': ['Boston', 'MA'],
-  'stamford-ct': ['Bridgeport', 'CT'],
-  'washington-dc': ['Washington', 'DC'],
-  'philadelphia-pa': ['Philadelphia', 'PA'],
-  'hartford-ct': ['Hartford', 'CT'],
-  'baltimore-md': ['Baltimore', 'MD'],
-  'wilmington-de': ['Philadelphia', 'PA'],
-  'pittsburgh-pa': ['Pittsburgh', 'PA'],
-  'chicago-il': ['Chicago', 'IL'],
-  'minneapolis-mn': ['Minneapolis', 'MN'],
-  'columbus-oh': ['Columbus', 'OH'],
-  'milwaukee-wi': ['Milwaukee', 'WI'],
-  'kansas-city-mo': ['Kansas City', 'MO'],
-  'indianapolis-in': ['Indianapolis', 'IN'],
-  'cincinnati-oh': ['Cincinnati', 'OH'],
-  'st-louis-mo': ['St. Louis', 'MO'],
-  'detroit-mi': ['Detroit', 'MI'],
-  'cleveland-oh': ['Cleveland', 'OH'],
-  'miami-fl': ['Miami', 'FL'],
-  'palm-beach-fl': ['Miami', 'FL'],
-  'naples-fl': ['Naples', 'FL'],
-  'tampa-fl': ['Tampa', 'FL'],
-  'atlanta-ga': ['Atlanta', 'GA'],
-  'orlando-fl': ['Orlando', 'FL'],
-  'nashville-tn': ['Nashville', 'TN'],
-  'charlotte-nc': ['Charlotte', 'NC'],
-  'raleigh-durham-nc': ['Raleigh', 'NC'],
-  'jacksonville-fl': ['Jacksonville', 'FL'],
-  'new-orleans-la': ['New Orleans', 'LA'],
-  'richmond-va': ['Richmond', 'VA'],
-  'austin-tx': ['Austin', 'TX'],
-  'dallas-tx': ['Dallas', 'TX'],
-  'phoenix-az': ['Phoenix', 'AZ'],
-  'las-vegas-nv': ['Las Vegas', 'NV'],
-  'houston-tx': ['Houston', 'TX'],
-  'san-antonio-tx': ['San Antonio', 'TX'],
-  'denver-co': ['Denver', 'CO'],
-  'salt-lake-city-ut': ['Salt Lake City', 'UT'],
-  'san-francisco-ca': ['San Francisco', 'CA'],
-  'san-jose-ca': ['San Jose', 'CA'],
-  'los-angeles-ca': ['Los Angeles', 'CA'],
-  'san-diego-ca': ['San Diego', 'CA'],
-  'seattle-wa': ['Seattle', 'WA'],
-  'portland-or': ['Portland', 'OR'],
-}
-
-function periodKey(period) {
-  return Number(period.slice(0, 4)) * 100 + Number(period.slice(5, 7))
-}
-
-function formatPeriod(period) {
-  const [year, month] = period.split('-').map(Number)
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(year, month - 1, 1)))
-}
-
-function shortPeriod(period) {
-  const [year, month] = period.split('-').map(Number)
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(year, month - 1, 1)))
-}
-
-async function fetchText(url) {
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'take-home-savings-calculator data refresh' },
-    signal: AbortSignal.timeout(30_000),
-  })
-  if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`)
-  return response.text()
-}
-
-async function safeSource(label, fn) {
-  try {
-    return await fn()
-  } catch (error) {
-    console.warn(`[${label}] refresh skipped; keeping last-known-good data.`)
-    console.warn(error instanceof Error ? error.message : error)
-    return null
-  }
-}
-
-function parseCsvLine(line) {
-  const cells = []
-  let cell = ''
-  let quoted = false
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i]
-    if (char === '"') {
-      if (quoted && line[i + 1] === '"') {
-        cell += '"'
-        i += 1
-      } else {
-        quoted = !quoted
-      }
-    } else if (char === ',' && !quoted) {
-      cells.push(cell)
-      cell = ''
-    } else {
-      cell += char
-    }
-  }
-  cells.push(cell)
-  return cells
-}
-
-function parseFredSeries(text, seriesId) {
-  const lines = text.split(/\r?\n/).filter(Boolean)
-  if (lines.length < 2) throw new Error(`FRED CSV for ${seriesId} is empty`)
-
-  const headers = parseCsvLine(lines[0]).map((cell) => cell.trim())
-  const dateIndex = headers.findIndex((header) =>
-    ['DATE', 'observation_date'].includes(header),
-  )
-  const valueIndex = headers.indexOf(seriesId)
-  if (dateIndex < 0 || valueIndex < 0) {
-    throw new Error(`FRED CSV for ${seriesId} has unexpected headers`)
-  }
-
-  const points = new Map()
-  for (const line of lines.slice(1)) {
-    const values = parseCsvLine(line)
-    const date = String(values[dateIndex] ?? '').trim()
-    const value = Number(values[valueIndex])
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
-    if (!Number.isFinite(value) || value <= 0) continue
-    points.set(date.slice(0, 7), value)
-  }
-
-  if (points.size === 0) throw new Error(`No observations found for ${seriesId}`)
-  return points
-}
-
-function latestPoint(points) {
-  const period = [...points.keys()].sort((a, b) => periodKey(b) - periodKey(a))[0]
-  if (!period) throw new Error('Series has no monthly observations')
-  return { period, value: points.get(period) }
-}
-
-function averageForYear(points, year) {
-  const values = [...points.entries()]
-    .filter(([period]) => period.startsWith(`${year}-`))
-    .map(([, value]) => value)
-    .filter((value) => Number.isFinite(value) && value > 0)
-  if (values.length < 10) return null
-  return values.reduce((sum, value) => sum + value, 0) / values.length
+/** HUD metro codes from the FY2027 listMetroAreas geography. */
+export const HUD_METROS = {
+  'new-york-ny': 'METRO35620MM5600',
+  'boston-ma': 'METRO14460MM1120',
+  // Stamford/Greenwich is represented by the containing Bridgeport-Stamford-Danbury MSA.
+  'stamford-ct': 'METRO14860M14860',
+  'washington-dc': 'METRO47900M47900',
+  'philadelphia-pa': 'METRO37980M37980',
+  'hartford-ct': 'METRO25540M25540',
+  'baltimore-md': 'METRO12580M12580',
+  'wilmington-de': 'METRO37980M37980',
+  'pittsburgh-pa': 'METRO38300M38300',
+  'chicago-il': 'METRO16980M16980',
+  'minneapolis-mn': 'METRO33460M33460',
+  'columbus-oh': 'METRO18140M18140',
+  'milwaukee-wi': 'METRO33340M33340',
+  'kansas-city-mo': 'METRO28140M28140',
+  'indianapolis-in': 'METRO26900M26900',
+  'cincinnati-oh': 'METRO17140M17140',
+  'st-louis-mo': 'METRO41180M41180',
+  'detroit-mi': 'METRO19820M19820',
+  'cleveland-oh': 'METRO17410N17460',
+  'miami-fl': 'METRO33100MM5000',
+  // Palm Beach uses HUD's West Palm Beach-Boca Raton subarea rather than Miami.
+  'palm-beach-fl': 'METRO33100MM8960',
+  'naples-fl': 'METRO34940M34940',
+  'tampa-fl': 'METRO45300M45300',
+  'atlanta-ga': 'METRO12060M12060',
+  'orlando-fl': 'METRO36740M36740',
+  'nashville-tn': 'METRO34980M34980',
+  'charlotte-nc': 'METRO16740M16740',
+  // The product label spans two CBSAs; Raleigh-Cary is the primary market and prior proxy.
+  'raleigh-durham-nc': 'METRO39580M39580',
+  'jacksonville-fl': 'METRO27260M27260',
+  'new-orleans-la': 'METRO35380M35380',
+  'richmond-va': 'METRO40060M40060',
+  'austin-tx': 'METRO12420M12420',
+  'dallas-tx': 'METRO19100M19100',
+  'phoenix-az': 'METRO38060M38060',
+  'las-vegas-nv': 'METRO29820M29820',
+  'houston-tx': 'METRO26420M26420',
+  'san-antonio-tx': 'METRO41700M41700',
+  'denver-co': 'METRO19740M19740',
+  'salt-lake-city-ut': 'METRO41620M41620',
+  'san-francisco-ca': 'METRO41860MM7360',
+  'san-jose-ca': 'METRO41940M41940',
+  'los-angeles-ca': 'METRO31080MM4480',
+  'san-diego-ca': 'METRO41740M41740',
+  'seattle-wa': 'METRO42660MM7600',
+  'portland-or': 'METRO38900M38900',
 }
 
 function boundedMultiplier(value, label, min = 0.5, max = 1.5) {
@@ -196,203 +67,213 @@ function boundedMultiplier(value, label, min = 0.5, max = 1.5) {
   return Number(value.toFixed(6))
 }
 
-function parseZillow(text) {
-  const lines = text.split(/\r?\n/).filter(Boolean)
-  if (lines.length < 2) throw new Error('Zillow CSV is empty')
-  const headers = parseCsvLine(lines[0])
-  const dateColumns = headers.filter((header) => /^\d{4}-\d{2}-\d{2}$/.test(header))
-  if (dateColumns.length === 0) throw new Error('Zillow CSV has no monthly columns')
-
-  const latestColumn = dateColumns[dateColumns.length - 1]
-  const baseColumn = dateColumns.find((column) => column.startsWith(COST_BASE_PERIOD))
-  if (!baseColumn) throw new Error(`Zillow CSV has no ${COST_BASE_PERIOD} baseline`)
-
-  const rows = lines.slice(1).map((line) => {
-    const values = parseCsvLine(line)
-    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']))
-  })
-
-  return { rows, latestColumn, baseColumn }
+function requireHudToken(token) {
+  if (typeof token !== 'string' || token.trim() === '') {
+    throw new Error('HUD_API_TOKEN is required; HUD data was not refreshed')
+  }
+  return token.trim()
 }
 
-function findZillowRow(rows, regionName, stateName) {
-  const expected = `${regionName}, ${stateName}`.toLowerCase()
-  return rows.find((row) => {
-    const name = String(row.RegionName ?? '').trim().toLowerCase()
-    const state = String(row.StateName ?? '').trim().toUpperCase()
-    return name === expected && (!state || state === stateName)
+export async function verifyHudMetroMapping({
+  token,
+  metros = HUD_METROS,
+  fetchImpl = fetch,
+}) {
+  const accessToken = requireHudToken(token)
+  const response = await fetchImpl(`${HUD_API_BASE}/listMetroAreas`, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      'User-Agent': 'take-home-savings-calculator data refresh',
+    },
+    signal: AbortSignal.timeout(30_000),
   })
+  if (!response.ok) {
+    throw new Error(`HUD listMetroAreas returned HTTP ${response.status}`)
+  }
+  const listedCodes = new Set(
+    (await response.json())?.data?.map((entry) => entry.cbsa_code),
+  )
+  const missing = Object.entries(metros)
+    .filter(([, cbsaCode]) => !listedCodes.has(cbsaCode))
+    .map(([metroId]) => metroId)
+  if (missing.length > 0) {
+    throw new Error(`HUD metro mapping validation failed: ${missing.join(', ')}`)
+  }
+  return Object.keys(metros).length
 }
 
-async function refreshPriceIndexes(existingCosts, nextCosts, nextLive) {
-  const entries = await Promise.all(
-    Object.entries(BLS_SERIES).map(async ([key, seriesId]) => {
-      const text = await fetchText(fredCsvUrl(seriesId))
-      return [key, parseFredSeries(text, seriesId)]
-    }),
-  )
-  const series = Object.fromEntries(entries)
-
-  const latestAll = latestPoint(series.allItems)
-  const priorYearPeriod = `${Number(latestAll.period.slice(0, 4)) - 1}${latestAll.period.slice(4)}`
-  const priorYearValue = series.allItems.get(priorYearPeriod)
-  if (!priorYearValue) throw new Error(`Missing prior-year CPI observation ${priorYearPeriod}`)
-  const inflationRate = latestAll.value / priorYearValue - 1
-  if (!Number.isFinite(inflationRate) || inflationRate < -0.1 || inflationRate > 0.25) {
-    throw new Error(`CPI inflation ${inflationRate} failed validation`)
+export function parseHudOneBedroom(payload, label) {
+  const basicData = payload?.data?.basicdata
+  const msaData = Array.isArray(basicData)
+    ? basicData.find((entry) => entry?.zip_code === 'MSA level')
+    : basicData
+  const value = Number(msaData?.['One-Bedroom'])
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${label} has no valid HUD One-Bedroom FMR`)
   }
+  return value
+}
 
-  const latestGroceries = latestPoint(series.groceries)
-  const groceryBase = series.groceries.get(USDA_GROCERY_BASE_PERIOD)
-  if (!groceryBase) throw new Error(`Missing food CPI baseline ${USDA_GROCERY_BASE_PERIOD}`)
-  const currentUsdaModerate =
-    USDA_MODERATE_SINGLE_ADULT_BASE * (latestGroceries.value / groceryBase)
-  const groceryMultiplier = boundedMultiplier(
-    currentUsdaModerate / LEGACY_GROCERY_REFERENCE,
-    'groceries',
-    0.7,
-    1.3,
-  )
-
-  const categorySeries = [
-    ['utilities', series.utilities],
-    ['transport', series.transport],
-    ['discretionary', series.discretionary],
-  ]
-
-  const multipliers = { ...existingCosts.categoryMultipliers, groceries: groceryMultiplier }
-  const periods = {
-    ...existingCosts.categoryPeriods,
-    groceries: formatPeriod(latestGroceries.period),
+function createHudThrottle({
+  intervalMs = HUD_REQUEST_INTERVAL_MS,
+  now = Date.now,
+  sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+} = {}) {
+  let lastRequestStarted = null
+  return async () => {
+    if (lastRequestStarted !== null) {
+      const wait = intervalMs - (now() - lastRequestStarted)
+      if (wait > 0) await sleep(wait)
+    }
+    lastRequestStarted = now()
   }
+}
 
-  for (const [key, points] of categorySeries) {
-    const latest = latestPoint(points)
-    const base = points.get(COST_BASE_PERIOD)
-    if (!base) throw new Error(`Missing ${key} CPI baseline ${COST_BASE_PERIOD}`)
-    multipliers[key] = boundedMultiplier(latest.value / base, key, 0.75, 1.25)
-    periods[key] = formatPeriod(latest.period)
-  }
+export async function fetchHudYear({
+  year,
+  token,
+  metros = HUD_METROS,
+  fetchImpl = fetch,
+  now = Date.now,
+  sleep,
+}) {
+  const accessToken = requireHudToken(token)
+  const throttle = createHudThrottle({ now, sleep })
+  const rents = {}
+  const failures = []
 
-  nextCosts.categoryMultipliers = multipliers
-  nextCosts.categoryPeriods = periods
-
-  // EIA's state bill table is annual. Bring that state-level dollar anchor
-  // forward using the same national utility-price series, without making any
-  // browser/API request at runtime.
-  const electricity = nextCosts.electricity
-  const billYear = Number(electricity?.billPeriod)
-  if (electricity && Number.isInteger(billYear) && billYear >= 2000 && billYear <= 2100) {
-    const utilityLatest = latestPoint(series.utilities)
-    const utilityAnnualBase = averageForYear(series.utilities, billYear)
-    if (utilityAnnualBase) {
-      electricity.priceInflationMultiplier = boundedMultiplier(
-        utilityLatest.value / utilityAnnualBase,
-        'electricity price inflation',
-        0.6,
-        1.6,
+  for (const [metroId, cbsaCode] of Object.entries(metros)) {
+    await throttle()
+    const url = `${HUD_API_BASE}/data/${encodeURIComponent(cbsaCode)}?year=${year}`
+    try {
+      const response = await fetchImpl(url, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          'User-Agent': 'take-home-savings-calculator data refresh',
+        },
+        signal: AbortSignal.timeout(30_000),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      rents[metroId] = parseHudOneBedroom(await response.json(), `${metroId} FY${year}`)
+    } catch (error) {
+      failures.push(metroId)
+      console.error(
+        `[HUD FY${year}] ${metroId} failed: ${error instanceof Error ? error.message : error}`,
       )
-      electricity.pricePeriod = formatPeriod(utilityLatest.period)
     }
   }
 
-  nextLive.inflationLabel = 'Latest available'
-  nextLive.inflationRate = Number(inflationRate.toFixed(4))
-  nextLive.inflationPeriod = formatPeriod(latestAll.period)
-  nextLive.inflationSource =
-    'U.S. Bureau of Labor Statistics CPI-U via FRED public CSV'
-  nextLive.costIndexPeriod = formatPeriod(latestAll.period)
-
-  return latestAll.period
+  if (failures.length > 0) {
+    throw new Error(
+      `HUD FY${year} coverage ${Object.keys(rents).length}/${Object.keys(metros).length}; failed: ${failures.join(', ')}`,
+    )
+  }
+  return rents
 }
 
-async function refreshZillow(existingCosts, nextCosts, nextLive) {
-  const text = await fetchText(ZILLOW_URL)
-  const { rows, latestColumn, baseColumn } = parseZillow(text)
-  const latestPeriod = latestColumn.slice(0, 7)
-
-  const baseValues = { ...existingCosts.housingBaseValues }
-  const latestValues = { ...existingCosts.housingLatestValues }
-  const multipliers = { ...existingCosts.housingMultipliers }
-  let coverage = 0
-
-  for (const [metroId, [regionName, stateName]] of Object.entries(ZILLOW_METROS)) {
-    const row = findZillowRow(rows, regionName, stateName)
-    if (!row) continue
-
-    const latest = Number(row[latestColumn])
-    const sourceBase = Number(row[baseColumn])
-    if (
-      !Number.isFinite(latest) ||
-      !Number.isFinite(sourceBase) ||
-      latest < 400 ||
-      latest > 15_000 ||
-      sourceBase < 400 ||
-      sourceBase > 15_000
-    ) {
-      continue
-    }
-
-    const base = Number(baseValues[metroId]) || sourceBase
-    const multiplier = latest / base
-    if (!Number.isFinite(multiplier) || multiplier < 0.5 || multiplier > 1.5) continue
-
-    baseValues[metroId] = Number(base.toFixed(2))
-    latestValues[metroId] = Number(latest.toFixed(2))
-    multipliers[metroId] = Number(multiplier.toFixed(6))
-    coverage += 1
+export function buildHudUpdate({
+  existingCosts,
+  existingLive,
+  metros = HUD_METROS,
+  anchorYear,
+  currentYear,
+  anchorRents,
+  currentRents,
+}) {
+  const metroIds = Object.keys(metros)
+  const missing = metroIds.filter((metroId) =>
+    !Number.isFinite(anchorRents[metroId]) || anchorRents[metroId] <= 0 ||
+    !Number.isFinite(currentRents[metroId]) || currentRents[metroId] <= 0)
+  if (missing.length > 0) {
+    throw new Error(`HUD rent coverage incomplete: ${missing.join(', ')}`)
   }
 
-  if (coverage < 30) {
-    throw new Error(`Zillow coverage only ${coverage}/${Object.keys(ZILLOW_METROS).length}`)
+  const multipliers = {}
+  const baseValues = {}
+  const latestValues = {}
+  for (const metroId of metroIds) {
+    const anchor = anchorRents[metroId]
+    const current = currentRents[metroId]
+    baseValues[metroId] = anchor
+    latestValues[metroId] = current
+    multipliers[metroId] = boundedMultiplier(
+      current / anchor,
+      `${metroId} HUD FMR`,
+      0.75,
+      1.25,
+    )
   }
 
+  const hasHousingDrift = Object.values(multipliers).some(
+    (value) => Math.abs(value - 1) > 0.00001,
+  )
+  const nextCosts = structuredClone(existingCosts)
+  const nextLive = structuredClone(existingLive)
+  nextCosts.housingMultipliers = multipliers
   nextCosts.housingBaseValues = baseValues
   nextCosts.housingLatestValues = latestValues
-  nextCosts.housingMultipliers = multipliers
-  nextCosts.housingPeriod = formatPeriod(latestPeriod)
-  nextCosts.housingCoverage = coverage
-  nextLive.rentEstimates = `Zillow-indexed · ${shortPeriod(latestPeriod)}`
-  nextLive.rentSource = 'Zillow Observed Rent Index (ZORI)'
+  nextCosts.housingAnchorYear = anchorYear
+  nextCosts.housingPeriod = `FY${currentYear}`
+  nextCosts.housingCoverage = metroIds.length
+  nextCosts.sources.housing =
+    'Zumper August 2026 asking-rent anchors, indexed with HUD Fair Market Rent 1BR year-over-year drift'
 
-  return latestPeriod
+  if (hasHousingDrift) {
+    nextLive.rentEstimates = `HUD FMR-indexed · FY${currentYear}`
+    nextLive.rentSource = 'Zumper Aug 2026 anchor, HUD Fair Market Rent 1BR drift'
+    nextLive.costModel = 'Anchored benchmarks, FMR-indexed'
+    nextLive.costIndexPeriod = `FY${currentYear}`
+  }
+
+  return { nextCosts, nextLive, hasHousingDrift }
 }
 
 async function main() {
+  const token = requireHudToken(process.env.HUD_API_TOKEN)
   const existingLive = JSON.parse(await readFile(LIVE_DATA_PATH, 'utf8'))
   const existingCosts = JSON.parse(await readFile(COST_DATA_PATH, 'utf8'))
-  const nextLive = structuredClone(existingLive)
-  const nextCosts = structuredClone(existingCosts)
-
-  const pricePeriod = await safeSource('BLS CPI via FRED CSV', () =>
-    refreshPriceIndexes(existingCosts, nextCosts, nextLive),
-  )
-  const zillowPeriod = await safeSource('Zillow ZORI', () =>
-    refreshZillow(existingCosts, nextCosts, nextLive),
-  )
-
-  if (!pricePeriod && !zillowPeriod) {
-    throw new Error('All external refreshes failed; last-known-good files were left untouched')
-  }
-
   const now = new Date()
-  const versionParts = [
-    zillowPeriod ? `zori-${zillowPeriod}` : `zori-${existingCosts.housingPeriod}`,
-    pricePeriod ? `bls-${pricePeriod}` : `bls-${existingLive.inflationPeriod}`,
-  ]
-  if (nextCosts.electricity?.billPeriod) {
-    versionParts.push(`eia-${nextCosts.electricity.billPeriod}`)
+  const currentYear = now.getUTCMonth() >= 8
+    ? now.getUTCFullYear() + 1
+    : now.getUTCFullYear()
+
+  if (process.env.HUD_VERIFY_METRO_MAPPING === 'true') {
+    const mapped = await verifyHudMetroMapping({ token })
+    console.log(`HUD metro mapping validated: ${mapped}/${Object.keys(HUD_METROS).length}.`)
   }
-  nextCosts.dataVersion = versionParts.join('_')
+
+  const anchorRents = await fetchHudYear({
+    year: HUD_ANCHOR_YEAR,
+    token,
+  })
+  const currentRents = currentYear === HUD_ANCHOR_YEAR
+    ? { ...anchorRents }
+    : await fetchHudYear({ year: currentYear, token })
+  const { nextCosts, nextLive, hasHousingDrift } = buildHudUpdate({
+    existingCosts,
+    existingLive,
+    anchorYear: HUD_ANCHOR_YEAR,
+    currentYear,
+    anchorRents,
+    currentRents,
+  })
+
+  const retainedVersions = String(existingCosts.dataVersion ?? '')
+    .split('_')
+    .filter((part) => part && !part.startsWith('zori-') && !part.startsWith('hud-fmr-'))
+  nextCosts.dataVersion = [
+    `hud-fmr-${currentYear}-anchor-${HUD_ANCHOR_YEAR}`,
+    ...retainedVersions,
+  ].join('_')
   nextCosts.generatedAt = now.toISOString().slice(0, 10)
-  nextCosts.basePeriod = COST_BASE_PERIOD
   nextLive.dataUpdated = new Intl.DateTimeFormat('en-US', {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
   }).format(now)
   nextLive.refreshedAt = now.toISOString().slice(0, 10)
-  nextLive.costModel = 'Public-data indexed benchmarks'
 
   const nextLiveText = `${JSON.stringify(nextLive, null, 2)}\n`
   const nextCostsText = `${JSON.stringify(nextCosts, null, 2)}\n`
@@ -408,18 +289,35 @@ async function main() {
     await writeFile(COST_DATA_PATH, nextCostsText)
     changed = true
   }
+  if (hasHousingDrift) {
+    const existingConfig = await readFile(COST_CONFIG_PATH, 'utf8')
+    const enabledConfig = existingConfig.replace(
+      'export const USE_AUTOMATIC_COST_UPDATES = false',
+      'export const USE_AUTOMATIC_COST_UPDATES = true',
+    )
+    if (enabledConfig !== existingConfig) {
+      await writeFile(COST_CONFIG_PATH, enabledConfig)
+      changed = true
+    } else if (!existingConfig.includes('export const USE_AUTOMATIC_COST_UPDATES = true')) {
+      throw new Error('Could not enable USE_AUTOMATIC_COST_UPDATES')
+    }
+  }
 
   if (!changed) {
-    console.log('No source data changed; keeping current generated files.')
+    console.log('No HUD source data changed; keeping current generated files.')
     return
   }
 
+  const multiplierValues = Object.values(nextCosts.housingMultipliers)
+  console.log(`HUD FY${currentYear} coverage: ${nextCosts.housingCoverage}/${Object.keys(HUD_METROS).length}`)
   console.log(
-    `Refresh complete. BLS/FRED: ${pricePeriod ?? 'fallback'}; Zillow: ${zillowPeriod ?? 'fallback'}.`,
+    `HUD multiplier range: ${Math.min(...multiplierValues).toFixed(6)}–${Math.max(...multiplierValues).toFixed(6)}`,
   )
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}
