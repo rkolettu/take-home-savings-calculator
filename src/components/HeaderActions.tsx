@@ -1,4 +1,11 @@
-import { Check, Clipboard, Download, RotateCcw, TriangleAlert } from 'lucide-react'
+import {
+  Check,
+  Clipboard,
+  Download,
+  Github,
+  RotateCcw,
+  TriangleAlert,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 interface HeaderActionsProps {
@@ -10,7 +17,7 @@ interface HeaderActionsProps {
 type Feedback = 'idle' | 'copied' | 'copy-failed' | 'downloaded' | 'download-failed'
 
 const buttonClass =
-  'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors'
+  'group flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-[transform,box-shadow,background-color,border-color,color] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]'
 
 /**
  * Export and reset. Reset is destructive of everything the user has typed,
@@ -122,6 +129,22 @@ export function HeaderActions({
         </span>
       </button>
 
+      <a
+        href="https://github.com/rkolettu/take-home-savings-calculator"
+        target="_blank"
+        rel="noreferrer"
+        className={`${buttonClass} no-underline`}
+        style={{
+          borderColor: 'var(--border)',
+          background: 'var(--surface-2)',
+          color: 'var(--text-secondary)',
+        }}
+        aria-label="View the Take-Home Savings Calculator source code on GitHub"
+      >
+        <Github className="size-3.5 transition-transform duration-150 group-hover:scale-105" />
+        <span className="hidden sm:inline">GitHub</span>
+      </a>
+
       <button
         type="button"
         onClick={reset}
@@ -137,10 +160,10 @@ export function HeaderActions({
             : 'var(--border)',
           background: confirmingReset
             ? 'color-mix(in srgb, var(--status-critical) 12%, transparent)'
-            : 'var(--surface-2)',
+            : 'transparent',
           color: confirmingReset
             ? 'var(--status-critical)'
-            : 'var(--text-secondary)',
+            : 'var(--text-muted)',
         }}
       >
         {confirmingReset ? (
