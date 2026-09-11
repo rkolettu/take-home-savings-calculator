@@ -487,12 +487,15 @@ describe('metro data integrity', () => {
 
   it('leaves the non-housing lines untouched by the tier', () => {
     const nyc = METROS_BY_ID['new-york-ny']
+    // Compared against the default tier rather than the raw metro fields: a
+    // sourced layer may legitimately move a line, but never per housing tier.
+    const baseline = costsFromMetro(nyc)
     for (const tier of HOUSING_TIERS) {
       const costs = costsFromMetro(nyc, tier)
-      expect(costs.utilities).toBe(nyc.utilities)
-      expect(costs.groceries).toBe(nyc.groceries)
-      expect(costs.transport).toBe(nyc.transport)
-      expect(costs.discretionary).toBe(nyc.discretionary)
+      expect(costs.utilities).toBe(baseline.utilities)
+      expect(costs.groceries).toBe(baseline.groceries)
+      expect(costs.transport).toBe(baseline.transport)
+      expect(costs.discretionary).toBe(baseline.discretionary)
     }
   })
 

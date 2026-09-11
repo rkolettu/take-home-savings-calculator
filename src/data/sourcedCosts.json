@@ -226,6 +226,7 @@
     "singleRenterFactor": 0.6,
     "modeledNonElectricShare": 0.45,
     "priceInflationMultiplier": 1.114969,
+    "priceInflationBasePeriod": "2024",
     "pricePeriod": "July 2026"
   },
   "housingAnchorYear": 2027

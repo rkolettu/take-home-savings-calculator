@@ -1,6 +1,7 @@
 import {
   USE_AUTOMATIC_HOUSING_UPDATES,
   USE_AUTOMATIC_NON_HOUSING_UPDATES,
+  USE_AUTOMATIC_UTILITY_UPDATES,
 } from '../data/costDataConfig'
 import sourcedCostsJson from '../data/sourcedCosts.json'
 import type { HousingTier, Metro } from '../data/types'
@@ -40,6 +41,8 @@ interface ElectricitySourceData {
   modeledNonElectricShare?: number
   priceInflationMultiplier?: number
   pricePeriod?: string
+  /** The `billPeriod` the escalator above was computed against. */
+  priceInflationBasePeriod?: string
 }
 
 interface SourcedCostData {
@@ -53,15 +56,23 @@ interface SourcedCostData {
 
 const sourcedCosts = sourcedCostsJson as SourcedCostData
 
-/** Exposed so persistence can tell when a stored default predates a data refresh. */
-const housingDataVersion = `hud-${sourcedCosts.housingAnchorYear ?? 'anchor'}-${sourcedCosts.housingPeriod ?? 'unknown'}`
-export const COST_DATA_VERSION = USE_AUTOMATIC_HOUSING_UPDATES
-  ? USE_AUTOMATIC_NON_HOUSING_UPDATES
-    ? `${housingDataVersion}_${sourcedCosts.dataVersion}`
-    : housingDataVersion
-  : USE_AUTOMATIC_NON_HOUSING_UPDATES
-    ? sourcedCosts.dataVersion
-    : 'legacy'
+/**
+ * Exposed so persistence can tell when a stored default predates a data
+ * refresh. Each enabled source contributes its own segment, so turning one
+ * layer on or off invalidates cached defaults without disturbing the others.
+ */
+const versionSegments = [
+  USE_AUTOMATIC_HOUSING_UPDATES
+    ? `hud-${sourcedCosts.housingAnchorYear ?? 'anchor'}-${sourcedCosts.housingPeriod ?? 'unknown'}`
+    : null,
+  USE_AUTOMATIC_UTILITY_UPDATES
+    ? `eia-${sourcedCosts.electricity?.billPeriod ?? 'unknown'}`
+    : null,
+  USE_AUTOMATIC_NON_HOUSING_UPDATES ? sourcedCosts.dataVersion : null,
+].filter((segment): segment is string => segment !== null)
+
+export const COST_DATA_VERSION =
+  versionSegments.length > 0 ? versionSegments.join('_') : 'legacy'
 
 export const COST_CATEGORIES: CostCategory[] = [
   {
@@ -141,6 +152,25 @@ export function legacyCostsFromMetro(
 }
 
 /**
+ * The electricity price escalator, but only when it still applies.
+ *
+ * `priceInflationMultiplier` carries the bills in `stateAverageMonthlyBill`
+ * forward from their published year to the app's price period. It is therefore
+ * valid for exactly one `billPeriod`. When a refresh pulls a newer EIA
+ * workbook, the bills move forward but the escalator does not, and applying
+ * the old one would inflate already-newer data a second time. Requiring the
+ * recorded base period to match the current bill period makes that impossible:
+ * a mismatch falls back to 1 and the fresher raw bills are used as published.
+ */
+export function electricityEscalator(electricity: ElectricitySourceData): number {
+  const { priceInflationMultiplier, priceInflationBasePeriod, billPeriod } = electricity
+  if (priceInflationMultiplier === undefined) return 1
+  if (priceInflationBasePeriod === undefined || billPeriod === undefined) return 1
+  if (priceInflationBasePeriod !== billPeriod) return 1
+  return safeMultiplier(priceInflationMultiplier)
+}
+
+/**
  * Utility basket with a real state-level electricity anchor.
  *
  * EIA publishes the average monthly residential electricity bill by state.
@@ -148,12 +178,16 @@ export function legacyCostsFromMetro(
  * data contains an explicit single-renter factor. Water, gas, trash and home
  * internet remain a modeled share of the metro's original utility benchmark.
  * Both pieces are bounded and the entire result falls back to the prior
- * inflation-indexed benchmark if the EIA source is missing or malformed.
+ * benchmark if the EIA source is missing or malformed.
+ *
+ * The broad `categoryMultipliers.utilities` value is applied only when the
+ * unsourced category layer is enabled, so enabling EIA alone never smuggles in
+ * an adjustment that no script can regenerate.
  */
 function sourcedUtilities(metro: Metro, legacyUtilities: number): number {
-  const broadUtilityMultiplier = safeMultiplier(
-    sourcedCosts.categoryMultipliers.utilities,
-  )
+  const broadUtilityMultiplier = USE_AUTOMATIC_NON_HOUSING_UPDATES
+    ? safeMultiplier(sourcedCosts.categoryMultipliers.utilities)
+    : 1
   const fallback = adjusted(legacyUtilities, broadUtilityMultiplier)
   const electricity = sourcedCosts.electricity
   if (!electricity) return fallback
@@ -175,11 +209,9 @@ function sourcedUtilities(metro: Metro, legacyUtilities: number): number {
     0.2,
     0.8,
   )
-  const electricityInflation = safeMultiplier(
-    electricity.priceInflationMultiplier,
-  )
 
-  const electricityEstimate = stateBill * renterFactor * electricityInflation
+  const electricityEstimate =
+    stateBill * renterFactor * electricityEscalator(electricity)
   const modeledOtherUtilities =
     legacyUtilities * nonElectricShare * broadUtilityMultiplier
   const estimate = Math.round(electricityEstimate + modeledOtherUtilities)
@@ -191,42 +223,49 @@ function sourcedUtilities(metro: Metro, legacyUtilities: number): number {
 }
 
 /**
- * The metro's current baseline basket. Housing can follow validated HUD drift
- * independently from the other sourced cost categories. This keeps the August
- * 2026 asking-rent anchors intact today while allowing a later HUD fiscal year
- * to update rent automatically without also changing groceries or utilities.
+ * The metro's current baseline basket.
+ *
+ * Each sourced layer is independent. Housing follows validated HUD drift,
+ * utilities follow the EIA state electricity anchor, and the remaining
+ * categories follow the static multipliers. A layer that is switched off
+ * returns that line to its exact original metro benchmark, so any one source
+ * can be enabled or rolled back without disturbing the others.
  */
 export function costsFromMetro(
   metro: Metro,
   tier: HousingTier = 'roommate',
 ): CostBreakdown {
   const legacy = legacyCostsFromMetro(metro, tier)
-  const housing = USE_AUTOMATIC_HOUSING_UPDATES
-    ? adjusted(
-        legacy.housing,
-        safeMultiplier(sourcedCosts.housingMultipliers[metro.id]),
-      )
-    : legacy.housing
-
-  if (!USE_AUTOMATIC_NON_HOUSING_UPDATES) {
-    return { ...legacy, housing }
-  }
 
   return {
-    housing,
-    utilities: sourcedUtilities(metro, legacy.utilities),
-    groceries: adjusted(
-      legacy.groceries,
-      safeMultiplier(sourcedCosts.categoryMultipliers.groceries),
-    ),
-    transport: adjusted(
-      legacy.transport,
-      safeMultiplier(sourcedCosts.categoryMultipliers.transport),
-    ),
-    discretionary: adjusted(
-      legacy.discretionary,
-      safeMultiplier(sourcedCosts.categoryMultipliers.discretionary),
-    ),
+    housing: USE_AUTOMATIC_HOUSING_UPDATES
+      ? adjusted(
+          legacy.housing,
+          safeMultiplier(sourcedCosts.housingMultipliers[metro.id]),
+        )
+      : legacy.housing,
+    utilities:
+      USE_AUTOMATIC_UTILITY_UPDATES || USE_AUTOMATIC_NON_HOUSING_UPDATES
+        ? sourcedUtilities(metro, legacy.utilities)
+        : legacy.utilities,
+    groceries: USE_AUTOMATIC_NON_HOUSING_UPDATES
+      ? adjusted(
+          legacy.groceries,
+          safeMultiplier(sourcedCosts.categoryMultipliers.groceries),
+        )
+      : legacy.groceries,
+    transport: USE_AUTOMATIC_NON_HOUSING_UPDATES
+      ? adjusted(
+          legacy.transport,
+          safeMultiplier(sourcedCosts.categoryMultipliers.transport),
+        )
+      : legacy.transport,
+    discretionary: USE_AUTOMATIC_NON_HOUSING_UPDATES
+      ? adjusted(
+          legacy.discretionary,
+          safeMultiplier(sourcedCosts.categoryMultipliers.discretionary),
+        )
+      : legacy.discretionary,
   }
 }
 

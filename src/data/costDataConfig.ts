@@ -8,9 +8,22 @@
 export const USE_AUTOMATIC_HOUSING_UPDATES = true
 
 /**
- * Other sourced living-cost adjustments remain opt-in. Keeping this separate
- * prevents HUD housing automation from also changing utilities, groceries,
- * transport, or discretionary spending.
+ * EIA electricity is enabled on its own because it is the one non-housing
+ * source that is fully reproducible: `scripts/refresh-eia-electricity.py`
+ * regenerates every state bill from the published EIA workbook, the
+ * single-renter and non-electric shares are explicit in generated data, and
+ * the result is clamped to half-to-double the original metro benchmark.
+ *
+ * Keeping this separate from the remaining categories means utilities can
+ * track a real public source without also applying the grocery, transport,
+ * and discretionary multipliers, which have no generator behind them.
+ */
+export const USE_AUTOMATIC_UTILITY_UPDATES = true
+
+/**
+ * Groceries, transport, and discretionary adjustments remain opt-in. Their
+ * multipliers in `sourcedCosts.json` are static values that no script in this
+ * repository can regenerate or verify, so they stay off until one exists.
  */
 export const USE_AUTOMATIC_NON_HOUSING_UPDATES = false
 

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
-    "refresh:data": "node scripts/refresh-live-data.mjs"
+    "refresh:data": "node scripts/refresh-live-data.mjs",
+    "refresh:eia": "python3 scripts/refresh-eia-electricity.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

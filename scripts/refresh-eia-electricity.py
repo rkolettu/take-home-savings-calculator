@@ -179,10 +179,29 @@ def main() -> None:
     year = workbook_year(rows)
     existing = json.loads(COST_DATA_PATH.read_text())
     electricity = dict(existing.get("electricity", {}))
+
+    previous_period = electricity.get("billPeriod")
+    bill_period = str(year) if year else electricity.get("billPeriod", "latest annual")
+
+    # The price escalator carries a specific published bill year forward to the
+    # app's price period, so it is only valid for the bill year it was computed
+    # against. A newer workbook already reflects the newer prices; reapplying
+    # the old escalator on top would inflate them a second time. Reset it here
+    # and record the new base period, and the application falls back to using
+    # the freshly published bills as-is until a new escalator is derived.
+    if bill_period != previous_period:
+        electricity["priceInflationMultiplier"] = 1.0
+        electricity["priceInflationBasePeriod"] = bill_period
+        electricity["pricePeriod"] = bill_period
+        print(
+            f"[EIA electricity] bill period {previous_period} -> {bill_period}; "
+            "price escalator reset to 1.0 pending a new derivation."
+        )
+
     electricity.update(
         {
             "stateAverageMonthlyBill": bills,
-            "billPeriod": str(year) if year else electricity.get("billPeriod", "latest annual"),
+            "billPeriod": bill_period,
             "source": "U.S. EIA residential average monthly bill by state",
             "sourceUrl": EIA_BILL_URL,
             # The EIA figure is for an average residential customer, while this
@@ -195,6 +214,17 @@ def main() -> None:
         }
     )
     existing["electricity"] = electricity
+
+    # Keep the eia- segment of the human-readable data version in step with the
+    # workbook that was actually parsed. Other segments are owned by their own
+    # refresh scripts and are preserved untouched.
+    retained = [
+        part
+        for part in str(existing.get("dataVersion", "")).split("_")
+        if part and not part.startswith("eia-")
+    ]
+    existing["dataVersion"] = "_".join([*retained, f"eia-{bill_period}"])
+
     existing.setdefault("sources", {})["utilities"] = (
         "Electricity: U.S. EIA residential average monthly bill by state, scaled to a single-renter apartment; "
         "water, gas, trash and home internet remain modeled from the metro benchmark and are inflation-indexed."
