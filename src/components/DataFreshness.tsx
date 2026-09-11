@@ -52,7 +52,10 @@ export function DataFreshness() {
     >
       <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex shrink-0 items-center gap-2.5">
+          <div
+            className="flex shrink-0 items-center gap-2.5"
+            title={`Data snapshot: ${liveData.dataUpdated} — Versioned sources · cached locally`}
+          >
             <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--accent-soft)]">
               <Database className="size-4 text-[var(--accent)]" />
             </div>
@@ -73,16 +76,23 @@ export function DataFreshness() {
               return (
                 <div
                   key={item.label}
-                  className="flex items-center gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2"
+                  className="flex cursor-help items-center gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2"
                   style={{ borderColor: 'var(--border)' }}
+                  title={`${item.label}: ${item.value} — ${item.detail}`}
                 >
                   <Icon className="size-3.5 shrink-0 text-[var(--text-muted)]" />
                   <div className="min-w-0 text-[10px] leading-4">
                     <div className="text-[var(--text-muted)]">{item.label}</div>
-                    <div className="truncate font-semibold text-[var(--text-secondary)]">
+                    <div
+                      className="truncate font-semibold text-[var(--text-secondary)]"
+                      title={item.value}
+                    >
                       {item.value}
                     </div>
-                    <div className="truncate text-[9px] text-[var(--text-muted)]">
+                    <div
+                      className="truncate text-[9px] text-[var(--text-muted)]"
+                      title={item.detail}
+                    >
                       {item.detail}
                     </div>
                   </div>
