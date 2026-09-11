@@ -6,7 +6,7 @@
   "inflationRate": 0.034,
   "inflationPeriod": "July 2026",
   "inflationSource": "U.S. Bureau of Labor Statistics CPI-U, 12-month change",
-  "refreshedAt": "2026-09-10",
+  "refreshedAt": "2026-09-11",
   "rentSource": "Zumper median 1BR asking-rent anchors",
   "costModel": "Versioned planning benchmarks",
   "costIndexPeriod": "August 2026 benchmark snapshot"
