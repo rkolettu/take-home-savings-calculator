@@ -7,8 +7,8 @@ on:
       - 'scripts/refresh-live-data.test.mjs'
       - '.github/workflows/refresh-live-data.yml'
   schedule:
-    # Source datasets are monthly/annual. A weekly check is frequent enough
-    # while keeping external traffic tiny and independent of website visitors.
+    # HUD FMR data changes annually. A weekly check is frequent enough while
+    # keeping external traffic tiny and independent of website visitors.
     - cron: '15 14 * * 1'
   workflow_dispatch:
 
@@ -31,12 +31,11 @@ jobs:
       - name: Refresh HUD FMR housing drift
         env:
           HUD_API_TOKEN: ${{ secrets.HUD_API_TOKEN }}
-          HUD_VERIFY_METRO_MAPPING: 'true'
         run: node scripts/refresh-live-data.mjs
 
       - name: Commit updated data when changed
         run: |
-          if git diff --quiet -- src/data/liveData.json src/data/sourcedCosts.json; then
+          if git diff --quiet -- src/data/liveData.json src/data/sourcedCosts.json src/data/costDataConfig.ts; then
             echo "No data changes to commit."
             exit 0
           fi
