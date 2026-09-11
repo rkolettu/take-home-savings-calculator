@@ -1,12 +1,18 @@
 /**
- * One-switch rollback for externally indexed living-cost data.
- *
- * Disabled because the current sourced layer is a ratio index anchored to its
- * base period: it can track later drift, but it cannot correct a wrong starting
- * level. Re-enable only after the source data advances beyond the base period
- * and the benchmark levels/provenance have been independently validated.
+ * HUD housing drift is safe to apply automatically because it is a bounded
+ * per-metro ratio over the verified FY2027 HUD Fair Market Rent anchor.
+ * FY2027 currently produces 1.0 multipliers, so enabling this does not change
+ * today's August 2026 asking-rent benchmarks. A later validated HUD year can
+ * move those anchors automatically without a manual code switch.
  */
-// Off until a HUD year later than the FY2027 anchor produces validated
-// per-metro 1BR drift over the August 2026 asking-rent benchmarks and at least
-// one housing multiplier differs meaningfully from 1.0.
-export const USE_AUTOMATIC_COST_UPDATES = false
+export const USE_AUTOMATIC_HOUSING_UPDATES = true
+
+/**
+ * Other sourced living-cost adjustments remain opt-in. Keeping this separate
+ * prevents HUD housing automation from also changing utilities, groceries,
+ * transport, or discretionary spending.
+ */
+export const USE_AUTOMATIC_NON_HOUSING_UPDATES = false
+
+/** Backward-compatible alias for older imports. */
+export const USE_AUTOMATIC_COST_UPDATES = USE_AUTOMATIC_NON_HOUSING_UPDATES
