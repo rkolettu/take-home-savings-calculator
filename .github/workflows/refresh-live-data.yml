@@ -5,10 +5,12 @@ on:
     paths:
       - 'scripts/refresh-live-data.mjs'
       - 'scripts/refresh-live-data.test.mjs'
+      - 'scripts/refresh-eia-electricity.py'
       - '.github/workflows/refresh-live-data.yml'
   schedule:
-    # HUD FMR data changes annually. A weekly check is frequent enough while
-    # keeping external traffic tiny and independent of website visitors.
+    # HUD FMR data changes annually and the EIA bill workbook is published
+    # annually too. A weekly check is frequent enough while keeping external
+    # traffic tiny and independent of website visitors.
     - cron: '15 14 * * 1'
   workflow_dispatch:
 
@@ -18,7 +20,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -28,10 +30,23 @@ jobs:
         with:
           node-version: 24
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install openpyxl
+
       - name: Refresh HUD FMR housing drift
         env:
           HUD_API_TOKEN: ${{ secrets.HUD_API_TOKEN }}
         run: node scripts/refresh-live-data.mjs
+
+      # Independent of HUD: this script exits zero and keeps the last known
+      # good values when the EIA download or validation fails.
+      - name: Refresh EIA residential electricity bills
+        run: python3 scripts/refresh-eia-electricity.py
 
       - name: Commit updated data when changed
         run: |
