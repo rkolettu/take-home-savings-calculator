@@ -59,7 +59,7 @@ export function CostOfLivingPanel({
           </span>
         </div>
         <div
-          className="grid grid-cols-4 gap-1 rounded-lg border bg-[var(--surface-2)] p-1"
+          className="grid grid-cols-4 gap-1 rounded-xl border bg-[var(--surface-2)] p-1 shadow-[inset_0_1px_2px_rgba(23,23,23,0.03)]"
           style={{ borderColor: 'var(--border)' }}
         >
           {HOUSING_TIERS.map((tier) => {
@@ -71,13 +71,13 @@ export function CostOfLivingPanel({
                 aria-pressed={active}
                 onClick={() => onHousingTierChange(tier)}
                 title={`${HOUSING_TIER_HINTS[tier]} — ${usd(housingForTier(metro, tier))}/mo in ${metro.city}`}
-                className="flex flex-col items-center rounded-md px-1 py-1.5 transition-colors"
+                className="flex flex-col items-center rounded-lg px-1 py-2 transition-[transform,background-color,box-shadow,color] duration-150 hover:bg-[var(--surface-raised)] active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]"
                 style={{
                   background: active ? 'var(--surface-raised)' : 'transparent',
                   color: active
                     ? 'var(--text-primary)'
                     : 'var(--text-secondary)',
-                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  boxShadow: active ? 'var(--shadow-soft)' : 'none',
                 }}
               >
                 <span className="truncate text-[11px] font-medium sm:text-xs">
@@ -104,11 +104,11 @@ export function CostOfLivingPanel({
               <div className="flex items-center justify-between gap-3">
                 <label
                   htmlFor={`cost-${category.key}`}
-                  className="flex min-w-0 items-center gap-2"
+                  className="flex min-w-0 items-center gap-2.5"
                 >
                   <span
                     aria-hidden
-                    className="flex size-7 shrink-0 items-center justify-center rounded-md"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg shadow-[0_1px_2px_rgba(23,23,23,0.08)]"
                     style={{
                       background: category.seriesVar,
                       color: 'var(--surface-1)',
@@ -133,7 +133,7 @@ export function CostOfLivingPanel({
                     </span>
                   )}
                   <div
-                    className="flex w-24 shrink-0 items-center rounded-lg sm:w-28 border bg-[var(--surface-2)] px-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)]"
+                    className="flex h-9 w-24 shrink-0 items-center rounded-lg border bg-[var(--surface-2)] px-2 transition-[border-color,box-shadow] duration-150 hover:border-[var(--baseline)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)] focus-within:shadow-[var(--shadow-soft)] sm:w-28"
                     style={{ borderColor: 'var(--border)' }}
                   >
                     <span className="text-xs text-[var(--text-muted)]">$</span>
@@ -165,7 +165,7 @@ export function CostOfLivingPanel({
                   onCostChange(category.key, Number(e.target.value))
                 }
                 aria-label={`${category.label} monthly cost`}
-                className="mt-2 w-full"
+                className="mt-2.5 w-full"
               />
             </div>
           )
@@ -173,7 +173,7 @@ export function CostOfLivingPanel({
       </div>
 
       <div
-        className="space-y-2 border-t pt-4"
+        className="space-y-2.5 border-t pt-4"
         style={{ borderColor: 'var(--gridline)' }}
       >
         <StackedBar
@@ -189,7 +189,7 @@ export function CostOfLivingPanel({
           <span className="text-sm text-[var(--text-secondary)]">
             Total monthly cost
           </span>
-          <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">
+          <span className="text-base font-semibold tabular-nums tracking-tight text-[var(--text-primary)]">
             {usd(total)}
           </span>
         </div>
@@ -199,7 +199,7 @@ export function CostOfLivingPanel({
         type="button"
         onClick={onReset}
         disabled={!isModified}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45"
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border bg-transparent px-3 text-sm font-medium transition-[transform,box-shadow,background-color,border-color] duration-150 hover:-translate-y-px hover:bg-[var(--surface-2)] hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:hover:bg-transparent disabled:hover:shadow-none"
         style={{
           borderColor: 'var(--border)',
           color: 'var(--text-secondary)',
