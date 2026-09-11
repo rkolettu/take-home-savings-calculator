@@ -42,13 +42,13 @@ export function SliderField({
             {label}
           </span>
           {hint && (
-            <span className="block text-[11px] text-[var(--text-muted)]">
+            <span className="mt-0.5 block text-[11px] leading-4 text-[var(--text-muted)]">
               {hint}
             </span>
           )}
         </label>
         <div
-          className="flex w-24 shrink-0 items-center rounded-lg border bg-[var(--surface-2)] px-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)]"
+          className="flex h-9 w-24 shrink-0 items-center rounded-lg border bg-[var(--surface-2)] px-2 transition-[border-color,box-shadow] duration-150 hover:border-[var(--baseline)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)] focus-within:shadow-[var(--shadow-soft)]"
           style={{ borderColor: 'var(--border)' }}
         >
           {prefix && (
@@ -74,7 +74,7 @@ export function SliderField({
         value={Math.min(Math.max(value, min), max)}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
-        className="mt-2 w-full"
+        className="mt-2.5 w-full"
       />
     </div>
   )
