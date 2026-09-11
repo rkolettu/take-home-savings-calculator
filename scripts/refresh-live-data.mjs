@@ -74,6 +74,20 @@ function requireHudToken(token) {
   return token.trim()
 }
 
+function collectHudMetroCodes(value, codes = new Set(), seen = new Set()) {
+  if (typeof value === 'string') {
+    if (/^METRO[0-9A-Z]+$/.test(value)) codes.add(value)
+    return codes
+  }
+  if (!value || typeof value !== 'object' || seen.has(value)) return codes
+  seen.add(value)
+  for (const [key, child] of Object.entries(value)) {
+    if (/^METRO[0-9A-Z]+$/.test(key)) codes.add(key)
+    collectHudMetroCodes(child, codes, seen)
+  }
+  return codes
+}
+
 export async function verifyHudMetroMapping({
   token,
   metros = HUD_METROS,
@@ -91,9 +105,10 @@ export async function verifyHudMetroMapping({
   if (!response.ok) {
     throw new Error(`HUD listMetroAreas returned HTTP ${response.status}`)
   }
-  const listedCodes = new Set(
-    (await response.json())?.data?.map((entry) => entry.cbsa_code),
-  )
+  const listedCodes = collectHudMetroCodes(await response.json())
+  if (listedCodes.size === 0) {
+    throw new Error('HUD listMetroAreas response contained no metro codes')
+  }
   const missing = Object.entries(metros)
     .filter(([, cbsaCode]) => !listedCodes.has(cbsaCode))
     .map(([metroId]) => metroId)

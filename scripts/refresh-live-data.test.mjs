@@ -91,6 +91,25 @@ describe('HUD FMR requests', () => {
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer test-token')
   })
 
+  it('recognizes metro codes in HUD list responses even when the API wraps or keys them differently', async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: {
+        metroareas: {
+          METRO10000M10000: { area_name: 'Alpha MSA', category: 'MetroArea' },
+          METRO20000M20000: { area_name: 'Beta MSA', category: 'MetroArea' },
+        },
+      } }),
+    }))
+
+    await expect(verifyHudMetroMapping({
+      token: 'test-token',
+      metros: { alpha: 'METRO10000M10000', beta: 'METRO20000M20000' },
+      fetchImpl,
+    })).resolves.toBe(2)
+  })
+
   it('requires a token before making a request', async () => {
     const fetchImpl = vi.fn()
     await expect(fetchHudYear({
