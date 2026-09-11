@@ -52,10 +52,7 @@ export function DataFreshness() {
     >
       <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div
-            className="flex shrink-0 items-center gap-2.5"
-            title={`Data snapshot: ${liveData.dataUpdated} — Versioned sources · cached locally`}
-          >
+          <div className="group relative flex shrink-0 items-center gap-2.5" tabIndex={0}>
             <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--accent-soft)]">
               <Database className="size-4 text-[var(--accent)]" />
             </div>
@@ -68,6 +65,14 @@ export function DataFreshness() {
                 Versioned sources · cached locally
               </div>
             </div>
+            <div
+              role="tooltip"
+              className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-max max-w-[280px] rounded-lg border bg-[var(--surface-raised)] px-3 py-2 text-[10px] leading-4 text-[var(--text-secondary)] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              Data snapshot: {liveData.dataUpdated}<br />
+              Versioned sources · cached locally
+            </div>
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[720px] lg:grid-cols-4">
@@ -76,25 +81,29 @@ export function DataFreshness() {
               return (
                 <div
                   key={item.label}
-                  className="flex cursor-help items-center gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2"
+                  className="group relative flex items-center gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2"
                   style={{ borderColor: 'var(--border)' }}
-                  title={`${item.label}: ${item.value} — ${item.detail}`}
+                  tabIndex={0}
                 >
                   <Icon className="size-3.5 shrink-0 text-[var(--text-muted)]" />
                   <div className="min-w-0 text-[10px] leading-4">
                     <div className="text-[var(--text-muted)]">{item.label}</div>
-                    <div
-                      className="truncate font-semibold text-[var(--text-secondary)]"
-                      title={item.value}
-                    >
+                    <div className="truncate font-semibold text-[var(--text-secondary)]">
                       {item.value}
                     </div>
-                    <div
-                      className="truncate text-[9px] text-[var(--text-muted)]"
-                      title={item.detail}
-                    >
+                    <div className="truncate text-[9px] text-[var(--text-muted)]">
                       {item.detail}
                     </div>
+                  </div>
+
+                  <div
+                    role="tooltip"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-[260px] -translate-x-1/2 rounded-lg border bg-[var(--surface-raised)] px-3 py-2 text-left text-[10px] leading-4 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+                    style={{ borderColor: 'var(--border)' }}
+                  >
+                    <div className="font-semibold text-[var(--text-primary)]">{item.label}</div>
+                    <div className="text-[var(--text-secondary)]">{item.value}</div>
+                    <div className="text-[var(--text-muted)]">{item.detail}</div>
                   </div>
                 </div>
               )
