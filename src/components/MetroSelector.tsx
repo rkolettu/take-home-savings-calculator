@@ -128,23 +128,27 @@ export function MetroSelector({
           onClick={() => setOpen((o) => !o)}
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2.5 text-left text-sm transition-colors hover:border-[var(--baseline)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+          className="flex h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 text-left text-sm transition-[transform,box-shadow,border-color,background-color] duration-150 hover:-translate-y-px hover:border-[var(--baseline)] hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] active:translate-y-0 active:shadow-none"
           style={{ borderColor: 'var(--border)' }}
         >
           <span className="flex min-w-0 items-center gap-2">
-            <MapPin className="size-4 shrink-0 text-[var(--text-muted)]" />
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-1)]">
+              <MapPin className="size-4 text-[var(--text-muted)]" />
+            </span>
             <span className="truncate font-medium text-[var(--text-primary)]">
               {selected.city}, {selected.stateCode}
             </span>
           </span>
-          <ChevronsUpDown className="size-4 shrink-0 text-[var(--text-muted)]" />
+          <ChevronsUpDown
+            className={`size-4 shrink-0 text-[var(--text-muted)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          />
         </button>
 
         {showCompareButton && (
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event('open-compare'))}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-colors hover:brightness-95 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-[transform,box-shadow,filter] duration-150 hover:-translate-y-px hover:brightness-95 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] active:translate-y-0 active:shadow-none"
             style={{
               borderColor: 'color-mix(in srgb, var(--accent) 32%, var(--border))',
               background: 'var(--accent-soft)',
@@ -160,12 +164,12 @@ export function MetroSelector({
 
       {open && (
         <div
-          className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-lg border bg-[var(--surface-1)] shadow-lg"
+          className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border bg-[var(--surface-1)] shadow-[var(--shadow-popover)]"
           style={{ borderColor: 'var(--border)' }}
         >
           <div
-            className="flex items-center gap-2 border-b px-3 py-2"
-            style={{ borderColor: 'var(--border)' }}
+            className="flex items-center gap-2 border-b px-3 py-2.5"
+            style={{ borderColor: 'var(--gridline)' }}
           >
             <Search className="size-4 shrink-0 text-[var(--text-muted)]" />
             <input
@@ -194,10 +198,10 @@ export function MetroSelector({
               <li key={group.region}>
                 {/* Sticky so the region stays visible while its rows scroll. */}
                 <div
-                  className="sticky top-0 z-10 border-b px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase backdrop-blur-sm"
+                  className="sticky top-0 z-10 border-b px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase backdrop-blur-md"
                   style={{
-                    background: 'var(--surface-2)',
-                    borderColor: 'var(--border)',
+                    background: 'color-mix(in srgb, var(--surface-2) 92%, transparent)',
+                    borderColor: 'var(--gridline)',
                     color: 'var(--text-muted)',
                   }}
                 >
@@ -223,7 +227,7 @@ export function MetroSelector({
                             setHighlight(index)
                           }}
                           onClick={() => choose(metro.id)}
-                          className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
+                          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-100"
                           style={{
                             background:
                               index === highlight
