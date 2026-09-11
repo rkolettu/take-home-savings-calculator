@@ -6,12 +6,12 @@ import {
   ShoppingBasket,
   TrendingUp,
 } from 'lucide-react'
-import { USE_AUTOMATIC_COST_UPDATES } from '../data/costDataConfig'
+import { USE_AUTOMATIC_HOUSING_UPDATES } from '../data/costDataConfig'
 import liveData from '../data/liveData.json'
 import sourcedCosts from '../data/sourcedCosts.json'
 
 // Ignore rounding noise from dividing raw source values by rounded anchors.
-const hasHousingDrift = USE_AUTOMATIC_COST_UPDATES &&
+const hasHousingDrift = USE_AUTOMATIC_HOUSING_UPDATES &&
   Object.values(sourcedCosts.housingMultipliers).some(
     (value) => Number.isFinite(value) && value >= 0.75 && value <= 1.25 && Math.abs(value - 1) > 0.00001,
   )
@@ -26,13 +26,15 @@ const items = [
   {
     label: 'Rent',
     value: hasHousingDrift ? liveData.rentEstimates : 'Aug 2026 asking-rent benchmarks',
-    detail: hasHousingDrift ? liveData.rentSource : 'Zumper median 1BR anchors',
+    detail: hasHousingDrift ? liveData.rentSource : 'HUD FMR annual indexing enabled',
     icon: Home,
   },
   {
     label: 'Living-cost data',
     value: hasHousingDrift ? liveData.costModel : 'Versioned planning benchmarks',
-    detail: hasHousingDrift ? liveData.costIndexPeriod : 'Automatic source adjustments off',
+    detail: hasHousingDrift
+      ? liveData.costIndexPeriod
+      : `HUD ${sourcedCosts.housingPeriod} anchor · auto-updates enabled`,
     icon: ShoppingBasket,
   },
   {
@@ -121,8 +123,8 @@ export function DataFreshness() {
                 ? `${liveData.rentSource}. `
                 : 'Housing uses August 2026 median 1BR asking-rent anchors; five markets are interpolated. '}
               {hasHousingDrift
-                ? `${liveData.costModel}. `
-                : 'The HUD Fair Market Rent integration is reserved for future housing-drift indexing and only changes values after a complete validated API refresh; no HUD adjustment is currently applied. '}
+                ? `${liveData.costModel}. HUD housing drift is applied automatically after a complete validated refresh. `
+                : `HUD Fair Market Rent 1BR data is checked automatically and used as a bounded annual housing-drift index. ${sourcedCosts.housingPeriod} is the current anchor period, so no HUD rent adjustment is needed yet; a complete validated newer HUD fiscal year will be applied automatically. `}
               Other housing tiers are derived from the 1BR anchor. These are planning estimates, not live quotes.
             </p>
             <p>
