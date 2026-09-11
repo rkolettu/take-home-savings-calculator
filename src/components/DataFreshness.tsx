@@ -74,7 +74,7 @@ export function DataFreshness() {
       <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex shrink-0 items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--accent-soft)]">
+            <div className="flex size-9 items-center justify-center rounded-xl border bg-[var(--accent-soft)] shadow-[var(--shadow-soft)]" style={{ borderColor: 'color-mix(in srgb, var(--accent) 16%, var(--border))' }}>
               <Database className="size-4 text-[var(--accent)]" />
             </div>
             <div>
@@ -94,11 +94,13 @@ export function DataFreshness() {
               return (
                 <div
                   key={item.label}
-                  className="group relative flex items-center gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2"
+                  className="group relative flex items-center gap-2 rounded-xl border bg-[var(--surface-2)] px-3 py-2.5 transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                   style={{ borderColor: 'var(--border)' }}
                   tabIndex={0}
                 >
-                  <Icon className="size-3.5 shrink-0 text-[var(--text-muted)]" />
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-1)]">
+                    <Icon className="size-3.5 text-[var(--text-muted)]" />
+                  </span>
                   <div className="min-w-0 text-[10px] leading-4">
                     <div className="text-[var(--text-muted)]">{item.label}</div>
                     <div className="truncate font-semibold text-[var(--text-secondary)]">
@@ -117,7 +119,7 @@ export function DataFreshness() {
                   */}
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-[260px] -translate-x-1/2 rounded-lg border bg-[var(--surface-raised)] px-3 py-2 text-left text-[10px] leading-4 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-[260px] -translate-x-1/2 rounded-xl border bg-[var(--surface-raised)] px-3 py-2 text-left text-[10px] leading-4 opacity-0 shadow-[var(--shadow-popover)] transition-[opacity,transform] duration-150 group-hover:-translate-y-0.5 group-hover:opacity-100 group-focus:-translate-y-0.5 group-focus:opacity-100"
                     style={{ borderColor: 'var(--border)' }}
                   >
                     <div className="font-semibold text-[var(--text-primary)]">{item.label}</div>
