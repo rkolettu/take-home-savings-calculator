@@ -59,6 +59,8 @@ npm run dev
 | `npm run lint` | oxlint |
 | `npm run build` | Typecheck then production build into `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
+| `npm run refresh:data` | Re-fetch HUD Fair Market Rents (needs `HUD_API_TOKEN`) |
+| `npm run refresh:eia` | Re-fetch EIA state electricity bills (needs `openpyxl`) |
 
 ## Deployment
 
@@ -147,10 +149,22 @@ The roommate share widens with market cost — where rent is high, people share
 larger units and split further — so it is 55% in expensive metros and 60% in
 cheaper ones. Any metro can override any tier explicitly.
 
-Utilities, groceries, transportation, and discretionary spending remain
-modelled metro benchmark estimates. A generated sourced-cost indexing layer
-is retained in the repository but disabled because an index ratio can track
-future drift without independently validating a starting price level.
+Non-housing costs are layered, and each layer has its own switch in
+`src/data/costDataConfig.ts` so it can be enabled or rolled back on its own.
+
+**Utilities are sourced** (`USE_AUTOMATIC_UTILITY_UPDATES`). Electricity comes
+from the U.S. EIA's average residential monthly bill for the metro's state,
+scaled by an explicit single-renter factor; water, gas, trash and internet stay
+modelled from the metro benchmark. This layer is enabled because it is fully
+reproducible: `scripts/refresh-eia-electricity.py` regenerates every state bill
+from the published EIA workbook, and the result is clamped to between half and
+double the original benchmark. See `src/data/eiaUtilityMethodology.md`.
+
+**Groceries, transportation and discretionary are not**
+(`USE_AUTOMATIC_NON_HOUSING_UPDATES`, off). Their multipliers exist in
+`sourcedCosts.json` but no script in this repository regenerates or verifies
+them, so they stay off until a generator exists and the metro benchmarks are
+used instead.
 
 ### Dynamic cash flow and compounding
 
@@ -199,11 +213,14 @@ Housing anchors use median 1BR asking rents from the Zumper National Rent
 Report, August 2026, for 40 metros. Stamford, Hartford, Wilmington, Palm Beach
 and Naples are interpolated: prior hand benchmarks multiplied by 0.8829 (the
 mean new/old ratio across the 40 covered metros). Other housing tiers remain
-derived from the 1BR anchor. Non-housing costs remain benchmark estimates.
-Automatic cost updates are disabled until validated per-metro 1BR drift over
-these anchors is available. The July 2026 housing base/latest snapshots are
-identical; a ratio index cannot correct a wrong anchor level. Sourced labels
-require enabled updates and validated drift, excluding rounding noise.
+derived from the 1BR anchor. Housing is re-indexed automatically against HUD
+Fair Market Rents; FY2027 is the current anchor year, so today's multipliers
+are all 1.0 and the anchors are unchanged until a newer validated fiscal year
+lands. Utilities are anchored to EIA state electricity bills. Groceries,
+transportation and discretionary remain benchmark estimates. A ratio index can
+track drift but cannot correct a wrong anchor level. Footer provenance labels
+appear only when a layer is both enabled and backed by data actually present in
+the generated file.
 
 CT and WI income-tested deductions remain modelled as zero, and Utah's
 unmodelled taxpayer credit also overstates tax at low incomes. Ohio work-city
@@ -239,6 +256,10 @@ src/
     metros.ts       45 metro benchmarks; housing tiers derived from the 1BR anchor
     taxTables.ts    2026 federal brackets, FICA constants, jurisdiction specs
     metroData.ts    Public barrel — components import from here
+    costDataConfig.ts  One on/off switch per sourced data layer
+    sourcedCosts.json  Generated: HUD rent multipliers, EIA state electricity
+    liveData.json      Generated: snapshot labels shown in the footer
+    eiaUtilityMethodology.md  How the utilities figure is built
   lib/
     tax.ts          Pure bracket / FICA / state / local math
     simulation.ts   Year-by-year cash flow and portfolio engine
@@ -250,7 +271,15 @@ src/
     exportSummary.ts  CSV and clipboard export
     format.ts       Display formatters
   components/       React UI, one concern per file
+
+scripts/            Data refresh, run weekly by GitHub Actions
+  refresh-live-data.mjs       HUD Fair Market Rent housing drift
+  refresh-eia-electricity.py  EIA residential electricity bills by state
 ```
+
+The two `scripts/` entries are the only things that write the generated files
+in `src/data/`. Both validate before writing and leave the last known good
+values in place on failure, so a bad upstream response cannot corrupt the app.
 
 ## Testing
 
