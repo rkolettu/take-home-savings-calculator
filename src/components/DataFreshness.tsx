@@ -25,14 +25,14 @@ const items = [
   },
   {
     label: 'Rent',
-    value: hasHousingDrift ? liveData.rentEstimates : 'Market benchmark estimates · Aug 2026',
-    detail: hasHousingDrift ? liveData.rentSource : 'Median 1BR asking rents, single-source benchmark',
+    value: hasHousingDrift ? liveData.rentEstimates : 'Aug 2026 asking-rent benchmarks',
+    detail: hasHousingDrift ? liveData.rentSource : 'Zumper median 1BR anchors',
     icon: Home,
   },
   {
     label: 'Living-cost data',
-    value: hasHousingDrift ? liveData.costModel : 'Benchmark estimates, inflation-indexed',
-    detail: hasHousingDrift ? liveData.costIndexPeriod : 'Market benchmarks · Aug 2026',
+    value: hasHousingDrift ? liveData.costModel : 'Versioned planning benchmarks',
+    detail: hasHousingDrift ? liveData.costIndexPeriod : 'Automatic source adjustments off',
     icon: ShoppingBasket,
   },
   {
@@ -58,11 +58,11 @@ export function DataFreshness() {
             </div>
             <div>
               <div className="text-xs font-semibold text-[var(--text-primary)]">
-                Data updated: {liveData.dataUpdated}
+                Data snapshot: {liveData.dataUpdated}
               </div>
               <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
                 <RefreshCw className="size-3" />
-                Weekly source checks · cached locally
+                Versioned sources · cached locally
               </div>
             </div>
           </div>
@@ -98,16 +98,16 @@ export function DataFreshness() {
         >
           <div className="space-y-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
             <p>
-              Living-cost defaults are cached, versioned benchmarks. {hasHousingDrift
+              Living-cost defaults are cached, versioned planning benchmarks. {hasHousingDrift
                 ? `${liveData.rentSource}. `
-                : 'Housing uses August 2026 asking-rent benchmarks; five markets are interpolated. '}
+                : 'Housing uses August 2026 median 1BR asking-rent anchors; five markets are interpolated. '}
               {hasHousingDrift
                 ? `${liveData.costModel}. `
-                : 'Automatic cost updates are disabled or have no validated drift; the benchmark basket is used. '}
+                : 'The HUD Fair Market Rent integration is reserved for future housing-drift indexing and only changes values after a complete validated API refresh; no HUD adjustment is currently applied. '}
               Other housing tiers are derived from the 1BR anchor. These are planning estimates, not live quotes.
             </p>
             <p>
-              Tax rules are versioned separately and are not automatically inferred from new legislation. Wage-growth and investment-return inputs are planning assumptions and may be updated less frequently. The 2.5% default used for long-term projection inflation is a planning assumption and is separate from the current CPI reading shown above.
+              Tax tables use 2026 federal, state, and local rules and are maintained separately from living-cost data. The inflation figure above is the 12-month CPI-U reading for the period shown in this snapshot. The 2.5% default used for long-term projection inflation is a separate planning assumption; wage-growth and investment-return inputs are planning assumptions as well.
             </p>
             <p>
               Educational estimates only — not tax, investment, legal, or financial advice. Actual results may differ based on credits, deductions, benefits, withholding, residency, local rules, personal spending, and future tax-law changes. Verify important decisions with official sources or a qualified professional.
