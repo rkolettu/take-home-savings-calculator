@@ -2,6 +2,7 @@ import {
   ArrowLeftRight,
   PiggyBank,
   Plus,
+  RotateCcw,
   Trash2,
   Wallet,
   X,
@@ -16,7 +17,8 @@ import {
   METROS_BY_ID,
 } from '../data/metroData'
 import type { FilingStatus, HousingTier } from '../data/metroData'
-import { costsFromMetro, totalCost } from '../lib/costs'
+import type { CostBreakdown, CostKey } from '../lib/costs'
+import { COST_CATEGORIES, costsFromMetro, totalCost } from '../lib/costs'
 import { savingsRate } from '../lib/forecast'
 import { number, parseCurrency, percent, usd } from '../lib/format'
 import { loadState } from '../lib/persistence'
@@ -30,6 +32,7 @@ interface CompareScenario {
   gross: number
   filingStatus: FilingStatus
   housingTier: HousingTier
+  costOverrides: Partial<CostBreakdown>
 }
 
 interface CompareModalProps {
@@ -47,8 +50,22 @@ function makeInitialScenarios(): CompareScenario[] {
   const housingTier = saved.housingTier ?? 'roommate'
 
   return [
-    { id: 1, metroId: primaryMetroId, gross, filingStatus, housingTier },
-    { id: 2, metroId: secondaryMetroId, gross, filingStatus, housingTier },
+    {
+      id: 1,
+      metroId: primaryMetroId,
+      gross,
+      filingStatus,
+      housingTier,
+      costOverrides: {},
+    },
+    {
+      id: 2,
+      metroId: secondaryMetroId,
+      gross,
+      filingStatus,
+      housingTier,
+      costOverrides: {},
+    },
   ]
 }
 
@@ -61,6 +78,7 @@ function statusForRate(rate: number) {
 
 export function CompareModal({ onClose }: CompareModalProps) {
   const [scenarios, setScenarios] = useState<CompareScenario[]>(makeInitialScenarios)
+  const [expandedBaselines, setExpandedBaselines] = useState<Record<number, boolean>>({})
   const nextId = useRef(3)
 
   const results = useMemo(
@@ -74,7 +92,9 @@ export function CompareModal({ onClose }: CompareModalProps) {
           localIncomeTaxRate: metro.localIncomeTaxRate,
           localIncomeTaxThreshold: metro.localIncomeTaxThreshold,
         })
-        const monthlyCost = totalCost(costsFromMetro(metro, scenario.housingTier))
+        const baselineCosts = costsFromMetro(metro, scenario.housingTier)
+        const costs = { ...baselineCosts, ...scenario.costOverrides }
+        const monthlyCost = totalCost(costs)
         const surplus = takeHome.netMonthly - monthlyCost
         const rate = savingsRate(takeHome.netMonthly, monthlyCost)
 
@@ -82,9 +102,12 @@ export function CompareModal({ onClose }: CompareModalProps) {
           scenario,
           metro,
           takeHome,
+          baselineCosts,
+          costs,
           monthlyCost,
           surplus,
           rate,
+          isCustomBaseline: Object.keys(scenario.costOverrides).length > 0,
           status: statusForRate(rate),
         }
       }),
@@ -113,6 +136,47 @@ export function CompareModal({ onClose }: CompareModalProps) {
     )
   }
 
+  function updateScenarioCost(id: number, key: CostKey, value: number) {
+    setScenarios((current) =>
+      current.map((scenario) =>
+        scenario.id === id
+          ? {
+              ...scenario,
+              costOverrides: {
+                ...scenario.costOverrides,
+                [key]: Math.max(0, value),
+              },
+            }
+          : scenario,
+      ),
+    )
+  }
+
+  function changeScenarioMetro(id: number, metroId: string) {
+    updateScenario(id, { metroId, costOverrides: {} })
+  }
+
+  function changeHousingTier(id: number, housingTier: HousingTier) {
+    setScenarios((current) =>
+      current.map((scenario) => {
+        if (scenario.id !== id) return scenario
+        const { housing: _housing, ...remainingOverrides } = scenario.costOverrides
+        return { ...scenario, housingTier, costOverrides: remainingOverrides }
+      }),
+    )
+  }
+
+  function resetScenarioCosts(id: number) {
+    updateScenario(id, { costOverrides: {} })
+  }
+
+  function toggleBaseline(id: number) {
+    setExpandedBaselines((current) => ({
+      ...current,
+      [id]: !current[id],
+    }))
+  }
+
   function addScenario() {
     if (scenarios.length >= 3) return
     const used = new Set(scenarios.map((scenario) => scenario.metroId))
@@ -127,6 +191,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
         gross: reference?.gross ?? 120_000,
         filingStatus: 'single',
         housingTier: reference?.housingTier ?? 'roommate',
+        costOverrides: {},
       },
     ])
   }
@@ -134,6 +199,11 @@ export function CompareModal({ onClose }: CompareModalProps) {
   function removeScenario(id: number) {
     if (scenarios.length <= 2) return
     setScenarios((current) => current.filter((scenario) => scenario.id !== id))
+    setExpandedBaselines((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
   }
 
   return (
@@ -163,7 +233,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
               Compare where your paycheck goes further
             </h2>
             <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)] sm:text-sm">
-              Up to three metros, incomes, filing statuses, and housing setups. Current-year snapshot only — no projections.
+              Up to three metros, incomes, filing statuses, housing setups, and adjustable monthly baselines. Current-year snapshot only — no projections.
             </p>
           </div>
 
@@ -291,7 +361,17 @@ export function CompareModal({ onClose }: CompareModalProps) {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {results.map((result, index) => {
-              const { scenario, metro, takeHome, monthlyCost, surplus, rate, status } = result
+              const {
+                scenario,
+                metro,
+                takeHome,
+                costs,
+                monthlyCost,
+                surplus,
+                rate,
+                status,
+                isCustomBaseline,
+              } = result
               const rank = rankForScenario(scenario.id)
               const rankLabel =
                 results.length === 3
@@ -303,6 +383,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
                   : rank === 1
                     ? 'Best'
                     : undefined
+              const baselineOpen = Boolean(expandedBaselines[scenario.id])
 
               return (
                 <Card
@@ -340,7 +421,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
                   <div className="space-y-4">
                     <MetroSelector
                       metroId={scenario.metroId}
-                      onChange={(metroId) => updateScenario(scenario.id, { metroId })}
+                      onChange={(metroId) => changeScenarioMetro(scenario.id, metroId)}
                       showCompareButton={false}
                     />
 
@@ -401,9 +482,10 @@ export function CompareModal({ onClose }: CompareModalProps) {
                         <select
                           value={scenario.housingTier}
                           onChange={(event) =>
-                            updateScenario(scenario.id, {
-                              housingTier: event.target.value as HousingTier,
-                            })
+                            changeHousingTier(
+                              scenario.id,
+                              event.target.value as HousingTier,
+                            )
                           }
                           className="w-full rounded-lg border bg-[var(--surface-2)] px-2.5 py-2.5 text-xs font-medium text-[var(--text-primary)]"
                           style={{ borderColor: 'var(--border)' }}
@@ -415,6 +497,94 @@ export function CompareModal({ onClose }: CompareModalProps) {
                           ))}
                         </select>
                       </label>
+                    </div>
+
+                    <div
+                      className="overflow-hidden rounded-xl border bg-[var(--surface-2)]"
+                      style={{ borderColor: 'var(--border)' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleBaseline(scenario.id)}
+                        aria-expanded={baselineOpen}
+                        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-[var(--surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--accent)]"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-[var(--text-primary)]">
+                            Adjust baseline costs
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
+                            {isCustomBaseline
+                              ? `Custom baseline · ${usd(monthlyCost)}/mo`
+                              : `Using ${metro.city} baseline · ${usd(monthlyCost)}/mo`}
+                          </span>
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-[var(--surface-1)] text-base leading-none text-[var(--text-secondary)] transition-transform duration-150"
+                          style={{
+                            borderColor: 'var(--border)',
+                            transform: baselineOpen ? 'rotate(180deg)' : 'none',
+                          }}
+                        >
+                          ⌄
+                        </span>
+                      </button>
+
+                      {baselineOpen && (
+                        <div
+                          className="border-t bg-[var(--surface-1)] p-3"
+                          style={{ borderColor: 'var(--gridline)' }}
+                        >
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {COST_CATEGORIES.map((category) => (
+                              <label key={category.key} className="block">
+                                <span className="mb-1 block text-[11px] font-medium text-[var(--text-secondary)]">
+                                  {category.label}
+                                </span>
+                                <div
+                                  className="flex items-center rounded-lg border bg-[var(--surface-2)] px-2 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[var(--accent)]"
+                                  style={{ borderColor: 'var(--border)' }}
+                                >
+                                  <span className="text-xs text-[var(--text-muted)]">$</span>
+                                  <input
+                                    inputMode="numeric"
+                                    value={number(costs[category.key])}
+                                    onChange={(event) =>
+                                      updateScenarioCost(
+                                        scenario.id,
+                                        category.key,
+                                        parseCurrency(event.target.value),
+                                      )
+                                    }
+                                    className="w-full bg-transparent px-1 py-2 text-right text-xs font-medium tabular-nums text-[var(--text-primary)] focus:outline-none"
+                                    aria-label={`${category.label} monthly cost for scenario ${index + 1}`}
+                                  />
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+
+                          <div
+                            className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3"
+                            style={{ borderColor: 'var(--gridline)' }}
+                          >
+                            <div className="text-xs text-[var(--text-secondary)]">
+                              Total <span className="font-semibold tabular-nums text-[var(--text-primary)]">{usd(monthlyCost)}/mo</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => resetScenarioCosts(scenario.id)}
+                              disabled={!isCustomBaseline}
+                              className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+                              style={{ borderColor: 'var(--border)' }}
+                            >
+                              <RotateCcw className="size-3.5" />
+                              Reset baseline
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div
@@ -479,7 +649,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
 
           <Card
             title="At a glance"
-            subtitle="Same 2026 tax engine and baseline metro costs as the calculator"
+            subtitle="Same 2026 tax engine and metro cost model as the calculator"
           >
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
@@ -568,7 +738,7 @@ export function CompareModal({ onClose }: CompareModalProps) {
               className="mt-4 border-t pt-3 text-xs leading-5 text-[var(--text-muted)]"
               style={{ borderColor: 'var(--gridline)' }}
             >
-              Comparison uses each metro’s built-in baseline costs for the selected housing tier. It intentionally excludes long-term projections so the comparison stays focused on today’s paycheck and monthly budget.
+              Each scenario starts with the metro’s built-in costs for the selected housing tier. Expand “Adjust baseline costs” to override individual monthly expenses; Reset baseline restores the metro defaults. Long-term projections remain excluded so the comparison stays focused on today’s paycheck and monthly budget.
             </p>
           </Card>
         </div>
