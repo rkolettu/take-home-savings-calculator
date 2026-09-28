@@ -22,7 +22,10 @@ const REGION_GROUPS = groupByRegion()
 const control =
   'inline-flex cursor-pointer items-baseline border-b border-[var(--ink)] pb-px text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] focus-within:border-[var(--accent)]'
 
-const pickerSelect = 'absolute inset-0 size-full cursor-pointer appearance-none opacity-0'
+/* The select is an invisible overlay, so its own type size only sets the
+   native option list — which macOS draws at the select's size. Keep it normal. */
+const pickerSelect =
+  'absolute inset-0 size-full cursor-pointer appearance-none text-[15px] font-normal tracking-normal opacity-0'
 
 /**
  * A select dressed as a word: the current choice is set as text and sizes

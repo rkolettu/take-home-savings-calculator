@@ -1,48 +1,8 @@
 import { ArrowLeftRight, ChartSpline } from 'lucide-react'
 import type { MotionValue } from 'motion/react'
 import { motion, useScroll, useTransform } from 'motion/react'
-import { useMemo, useRef } from 'react'
-import { usd } from '../../lib/format'
-import { metroOutcomes } from '../../lib/paycheck'
+import { useRef } from 'react'
 import { MaskedWords, Reveal } from './motion'
-import type { LandingModel } from './types'
-
-/**
- * A slow band of cities and what each leaves you each month, alternating
- * ink and grey like the portfolio's marquee. Purely a transition; the
- * figures are real and the list is announced once for screen readers.
- */
-export function CityTicker({ model }: { model: LandingModel }) {
-  const outcomes = useMemo(
-    () => metroOutcomes(model.gross, model.filingStatus, model.housingTier),
-    [model.gross, model.filingStatus, model.housingTier],
-  )
-  const items = outcomes.filter((_, i) => i % 3 === 0).slice(0, 12)
-  const run = (hidden: boolean) => (
-    <div className="flex shrink-0 items-center" aria-hidden={hidden || undefined}>
-      {items.map((o, i) => (
-        <span key={o.metro.id} className="flex items-center">
-          <span
-            className="whitespace-nowrap px-6 text-[40px] font-bold tracking-[-0.05em] sm:text-[56px]"
-            style={{ color: i % 2 ? 'var(--line-strong)' : 'var(--ink)' }}
-          >
-            {o.metro.city} <span className="tabular-nums">{usd(o.kept)}</span>
-          </span>
-          <span className="text-lg text-[var(--accent)]">✦</span>
-        </span>
-      ))}
-    </div>
-  )
-  return (
-    <div className="ticker overflow-hidden border-y border-[var(--line)] py-6" role="presentation">
-      <p className="sr-only">Monthly savings on this salary in a selection of metros, shown as a scrolling ticker.</p>
-      <div className="ticker-track flex w-max">
-        {run(true)}
-        {run(true)}
-      </div>
-    </div>
-  )
-}
 
 /** A sentence that fills in word by word as it scrolls through the viewport. */
 export function ScrollFillLine({ text }: { text: string }) {
