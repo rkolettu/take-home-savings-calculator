@@ -71,7 +71,7 @@ export function DataFreshness() {
       style={{ borderColor: 'var(--border)' }}
       aria-label="Data sources and disclaimer"
     >
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
+      <div className="landing-container py-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex shrink-0 items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl border bg-[var(--accent-soft)] shadow-[var(--shadow-soft)]" style={{ borderColor: 'color-mix(in srgb, var(--accent) 16%, var(--border))' }}>

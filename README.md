@@ -11,6 +11,11 @@ network call — your inputs never leave the page.
 
 ## Features
 
+- **An interactive landing story** told with the calculator's own numbers: a
+  paycheck drawn as a unit chart of dots that splits into taxes, rent, living
+  costs and what you keep; a scroll-pinned walkthrough of one paycheck; the
+  same salary run through all 45 metros; and a 20-year wealth comparison with
+  a year scrubber. Every control writes straight back into the calculator.
 - **45 US metros** across six regions, each with cost-of-living benchmarks and
   its own state and local tax treatment.
 - **Four housing tiers** per metro — roommate share, studio, 1-bed, 2-bed solo
@@ -36,6 +41,9 @@ network call — your inputs never leave the page.
 | Build | Vite 8 (Rolldown) |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`, CSS-first config) |
 | Charts | Recharts |
+| Landing visuals | Canvas 2D particle field (no WebGL), SVG |
+| Motion | Motion (Framer Motion) — reveals, springs, scroll-linked story |
+| Type | Inter Variable + IBM Plex Mono, self-hosted via Fontsource |
 | Icons | lucide-react |
 | Tests | Vitest |
 | Lint | oxlint |

@@ -13,6 +13,8 @@ import { Card } from './components/Card'
 import { HeaderActions } from './components/HeaderActions'
 import { CostOfLivingPanel } from './components/CostOfLivingPanel'
 import { IncomeInput } from './components/IncomeInput'
+import { ChapterIndicator } from './components/landing/ChapterIndicator'
+import { LandingPage } from './components/landing/LandingPage'
 import { MetroSelector } from './components/MetroSelector'
 import { MilestonesPanel } from './components/MilestonesPanel'
 import { ProjectionChart } from './components/ProjectionChart'
@@ -245,6 +247,10 @@ export default function App() {
     realMode,
   ])
 
+  const openCalculator = useCallback(() => {
+    document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
   const resetAll = useCallback(() => {
     clearState()
     setMetroId(DEFAULTS.metroId)
@@ -303,25 +309,30 @@ export default function App() {
     [simulation, metro, horizonYears],
   )
 
+  /* The hero owns the page's h1 on the landing; the projection has none. */
+  const TitleTag = view === 'projection' ? 'h1' : 'span'
+
   return (
     <div className="min-h-screen bg-[var(--page)]">
-      <header
-        className="border-b bg-[var(--surface-1)]"
-        style={{ borderColor: 'var(--border)' }}
-      >
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <Landmark className="size-5 shrink-0 text-[var(--accent)]" />
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold text-[var(--text-primary)]">
-                Take-Home Savings Calculator
-              </h1>
-              <p className="text-xs text-[var(--text-muted)]">
-                2026 federal, state and local tax across {METROS.length} US
-                metros
-              </p>
-            </div>
-          </div>
+      <header className="app-header relative z-40 sm:sticky sm:top-0 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--page)_84%,transparent)] backdrop-blur-md">
+        <div className="landing-container flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-3">
+          <a href="#" className="flex min-w-0 items-center gap-3 no-underline" aria-label="Take-Home Savings Calculator, home">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--ink)] text-white">
+              <Landmark className="size-[18px]" />
+            </span>
+            <span className="min-w-0">
+              <TitleTag className="block text-[15px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
+                Take-Home <span className="text-[var(--muted)]">/</span> Savings
+              </TitleTag>
+              {view === 'calculator' ? (
+                <ChapterIndicator fallback={`2026 tax · ${METROS.length} U.S. metros`} />
+              ) : (
+                <span className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                  2026 tax · {METROS.length} U.S. metros
+                </span>
+              )}
+            </span>
+          </a>
 
           <nav
             className="order-3 flex w-full gap-1 rounded-xl border bg-[var(--surface-2)] p-1 sm:order-none sm:w-auto"
@@ -367,7 +378,30 @@ export default function App() {
       </header>
 
       {view === 'calculator' ? (
-        <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <>
+        <LandingPage
+          model={{
+            gross,
+            filingStatus,
+            metro,
+            housingTier,
+            costs,
+            takeHome,
+            wageGrowth,
+            inflationRate,
+            annualReturn,
+            startingBalance,
+            horizonYears,
+            onGrossChange: setGross,
+            onMetroChange: selectMetro,
+            onHousingTierChange: selectHousingTier,
+            onOpenCalculator: openCalculator,
+          }}
+        />
+        <main
+          id="calculator"
+          className="landing-container scroll-mt-24 space-y-6 py-6"
+        >
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-6">
               <Card
@@ -474,8 +508,9 @@ export default function App() {
             </aside>
           </div>
         </main>
+        </>
       ) : (
-        <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <main className="landing-container space-y-6 py-6">
           <section className="rounded-2xl border bg-[var(--surface-1)] p-5 sm:p-6" style={{ borderColor: 'var(--border)' }}>
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
