@@ -1,13 +1,18 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
+interface Status {
+  num: string
+  name: string
+}
+
 /**
- * "02 / 04 · 45 cities" — the portfolio's running chapter marker. Watches
+ * "02 / 04  ONE PAYCHECK" — the portfolio's running chapter marker. Watches
  * every `[data-chapter]` section and names the one crossing the middle of
  * the viewport; outside the story it shows `fallback`.
  */
-export function ChapterIndicator({ fallback }: { fallback: string }) {
-  const [chapter, setChapter] = useState<{ num: string; name: string } | null>(null)
+export function ChapterIndicator({ fallback }: { fallback: Status }) {
+  const [chapter, setChapter] = useState<Status | null>(null)
 
   useEffect(() => {
     const sections = [...document.querySelectorAll<HTMLElement>('[data-chapter]')]
@@ -33,20 +38,20 @@ export function ChapterIndicator({ fallback }: { fallback: string }) {
     return () => io.disconnect()
   }, [])
 
-  const text = chapter ? `${chapter.num} · ${chapter.name}` : fallback
+  const shown = chapter ?? fallback
   return (
-    <span className="relative block h-4 overflow-hidden font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+    <span className="header-status relative h-[1.2em] overflow-hidden" aria-live="polite">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={text}
-          className="block whitespace-nowrap"
+          key={`${shown.num} ${shown.name}`}
+          className="flex items-baseline gap-[0.6rem]"
           initial={{ y: '100%', opacity: 0 }}
           animate={{ y: '0%', opacity: 1 }}
           exit={{ y: '-100%', opacity: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-          {chapter ? <span className="text-[var(--ink)]">{chapter.num}</span> : null}
-          {chapter ? ` · ${chapter.name}` : fallback}
+          <span className="status-num">{shown.num}</span>
+          <span className="status-name">{shown.name}</span>
         </motion.span>
       </AnimatePresence>
     </span>
