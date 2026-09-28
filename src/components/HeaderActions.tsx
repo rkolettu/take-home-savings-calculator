@@ -1,4 +1,12 @@
-import { Check, Clipboard, Download, RotateCcw, TriangleAlert } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Check,
+  Clipboard,
+  Code,
+  Download,
+  RotateCcw,
+  TriangleAlert,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 interface HeaderActionsProps {
@@ -9,8 +17,14 @@ interface HeaderActionsProps {
 
 type Feedback = 'idle' | 'copied' | 'copy-failed' | 'downloaded' | 'download-failed'
 
+/* Quiet text actions in the portfolio / EDGAR nav style: no box, ink on
+   hover, an icon only where the label is dropped below desktop widths. */
 const buttonClass =
-  'group flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]'
+  'inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]'
+
+/* Labels stay readable to screen readers where only icons show. */
+const labelClass = 'sr-only lg:not-sr-only'
+const iconClass = 'size-4 lg:hidden'
 
 /**
  * Export and reset. Reset is destructive of everything the user has typed,
@@ -65,29 +79,27 @@ export function HeaderActions({
   const downloadFailed = feedback === 'download-failed'
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-0.5 sm:gap-1">
       <button
         type="button"
         onClick={copy}
         className={buttonClass}
         style={{
-          borderColor: copyFailed ? 'var(--status-critical)' : 'var(--border)',
-          background: 'var(--surface-2)',
           color: copyFailed
             ? 'var(--status-critical)'
             : copied
               ? 'var(--status-good)'
-              : 'var(--text-secondary)',
+              : 'var(--ink-2)',
         }}
       >
         {copied ? (
-          <Check className="size-3.5" />
+          <Check className={iconClass} />
         ) : copyFailed ? (
-          <TriangleAlert className="size-3.5" />
+          <TriangleAlert className={iconClass} />
         ) : (
-          <Clipboard className="size-3.5" />
+          <Clipboard className={iconClass} />
         )}
-        <span className="hidden sm:inline">
+        <span className={labelClass}>
           {copied ? 'Copied' : copyFailed ? 'Copy blocked' : 'Copy summary'}
         </span>
       </button>
@@ -97,23 +109,19 @@ export function HeaderActions({
         onClick={download}
         className={buttonClass}
         style={{
-          borderColor: downloadFailed
-            ? 'var(--status-critical)'
-            : 'var(--border)',
-          background: 'var(--surface-2)',
           color: downloadFailed
             ? 'var(--status-critical)'
             : downloaded
               ? 'var(--status-good)'
-              : 'var(--text-secondary)',
+              : 'var(--ink-2)',
         }}
       >
         {downloaded ? (
-          <Check className="size-3.5" />
+          <Check className={iconClass} />
         ) : (
-          <Download className="size-3.5" />
+          <Download className={iconClass} />
         )}
-        <span className="hidden sm:inline">
+        <span className={labelClass}>
           {downloaded
             ? 'Downloaded'
             : downloadFailed
@@ -127,15 +135,12 @@ export function HeaderActions({
         target="_blank"
         rel="noreferrer"
         className={`${buttonClass} no-underline`}
-        style={{
-          borderColor: 'var(--border)',
-          background: 'var(--surface-2)',
-          color: 'var(--text-secondary)',
-        }}
+        style={{ color: 'var(--ink-2)' }}
         aria-label="View the Take-Home Savings Calculator source code on GitHub"
       >
-        <span className="font-semibold">&lt;/&gt;</span>
-        <span className="hidden sm:inline">GitHub</span>
+        <Code className={iconClass} />
+        <span className="hidden lg:inline">GitHub</span>
+        <ArrowUpRight aria-hidden className="hidden size-3.5 lg:inline" />
       </a>
 
       <button
@@ -148,24 +153,21 @@ export function HeaderActions({
         }
         className={buttonClass}
         style={{
-          borderColor: confirmingReset
-            ? 'var(--status-critical)'
-            : 'var(--border)',
           background: confirmingReset
-            ? 'color-mix(in srgb, var(--status-critical) 12%, transparent)'
-            : 'transparent',
+            ? 'color-mix(in srgb, var(--status-critical) 10%, transparent)'
+            : undefined,
           color: confirmingReset
             ? 'var(--status-critical)'
-            : 'var(--text-muted)',
+            : 'var(--muted)',
         }}
       >
         {confirmingReset ? (
-          <TriangleAlert className="size-3.5" />
+          <TriangleAlert className={iconClass} />
         ) : (
-          <RotateCcw className="size-3.5" />
+          <RotateCcw className={iconClass} />
         )}
-        <span className="hidden sm:inline">
-          {confirmingReset ? 'Tap again to confirm' : 'Reset all'}
+        <span className="hidden lg:inline">
+          {confirmingReset ? 'Tap again to confirm' : 'Reset'}
         </span>
       </button>
     </div>

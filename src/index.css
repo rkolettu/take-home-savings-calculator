@@ -86,7 +86,43 @@ input {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Top app chrome: a translucent bar in the EDGAR style. */
+/* Top app chrome: a translucent bar in the EDGAR style, with plain text
+   links as on the portfolio. The current view is ink with a hairline. */
+.nav-link {
+  position: relative;
+  padding: 0.25rem 0;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+  transition: color 150ms ease;
+}
+
+.nav-link:hover,
+.nav-link[aria-current="page"] {
+  color: var(--ink);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -2px;
+  height: 1px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-link[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 nav[aria-label="Calculator sections"] {
   box-shadow: inset 0 1px 2px rgba(23, 23, 23, 0.035);
 }
