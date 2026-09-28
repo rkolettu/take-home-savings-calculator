@@ -86,41 +86,207 @@ input {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Top app chrome: a translucent bar in the EDGAR style, with plain text
-   links as on the portfolio. The current view is ink with a hairline. */
-.nav-link {
+/* ---------- Header ----------
+   The family header shared with the portfolio and Signal Dash: no bar, no
+   border; the page fades out beneath it. Wordmark left, chapter marker
+   centre, text links and mono utilities right. */
+.site-header {
   position: relative;
-  padding: 0.25rem 0;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--muted);
-  transition: color 150ms ease;
-}
-
-.nav-link:hover,
-.nav-link[aria-current="page"] {
+  z-index: 40;
   color: var(--ink);
 }
 
-.nav-link::after {
+.site-header::before {
   content: "";
   position: absolute;
-  inset: auto 0 -2px;
-  height: 1px;
-  background: var(--ink);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  inset: 0 0 -1.4rem;
+  z-index: -1;
+  background: linear-gradient(to bottom, var(--page) 60%, rgba(244, 241, 234, 0));
+  pointer-events: none;
 }
 
-.nav-link[aria-current="page"]::after {
-  transform: scaleX(1);
+@media (min-width: 640px) {
+  .site-header {
+    position: sticky;
+    top: 0;
+  }
 }
 
-.nav-link:focus-visible {
+.header-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 1rem;
+  padding-block: 1.1rem;
+}
+
+@media (min-width: 1024px) {
+  .header-row {
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+}
+
+.brand {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.4rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brand-name {
+  font: inherit;
+  margin: 0;
+}
+
+.brand i {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.brand-tag {
+  display: none;
+  margin-left: 0.6rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.header-center {
+  display: none;
+}
+
+.header-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-name {
+  color: var(--muted);
+}
+
+@media (min-width: 1024px) {
+  .brand-tag {
+    display: inline-block;
+  }
+
+  .header-center {
+    display: block;
+    justify-self: center;
+  }
+}
+
+.header-right {
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  column-gap: 1.3rem;
+  row-gap: 0.35rem;
+}
+
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 1.3rem;
+}
+
+.site-header nav a,
+.header-util {
+  line-height: 1.4rem;
+  white-space: nowrap;
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition:
+    background-size 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 150ms ease;
+}
+
+.site-header nav a {
+  font-size: 0.9rem;
+}
+
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"],
+.header-util:hover {
+  background-size: 100% 1px;
+}
+
+.header-utils {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-util {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.header-util:hover {
+  color: var(--ink);
+}
+
+.site-header a:focus-visible,
+.header-util:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+/* GitHub sits with the text links on wide screens and with the
+   utilities on narrow ones, where the link row runs out of room. */
+.util-github {
+  display: none;
+}
+
+/* Phones: brand and view links share the first row; the utilities drop to
+   a full-width second row rather than squeezing the links. */
+@media (max-width: 639px) {
+  .header-right {
+    display: contents;
+  }
+
+  .site-header nav {
+    justify-self: end;
+    gap: 1rem;
+  }
+
+  .header-utils {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem;
+  }
+
+  .nav-github {
+    display: none;
+  }
+
+  .util-github {
+    display: inline;
+  }
+
+  .header-utils {
+    gap: 0.85rem;
+  }
 }
 
 nav[aria-label="Calculator sections"] {
