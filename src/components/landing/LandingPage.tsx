@@ -1,6 +1,6 @@
 import { CitySpectrum } from './CitySpectrum'
 import { Hero } from './Hero'
-import { CityTicker, ScrollFillLine, WorkbenchIntro } from './Interludes'
+import { ScrollFillLine, WorkbenchIntro } from './Interludes'
 import { PaycheckStory } from './PaycheckStory'
 import type { LandingModel } from './types'
 import { WealthHorizon } from './WealthHorizon'
@@ -16,7 +16,6 @@ export function LandingPage({ model }: { model: LandingModel }) {
   return (
     <div className="landing">
       <Hero model={model} storyId={STORY_ID} />
-      <CityTicker model={model} />
       <PaycheckStory model={model} id={STORY_ID} />
       <ScrollFillLine text="A salary is a headline number. Where you live decides how much of it you actually keep." />
       <CitySpectrum model={model} />

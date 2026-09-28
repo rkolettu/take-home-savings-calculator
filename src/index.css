@@ -311,21 +311,6 @@ select optgroup {
   color: var(--ink);
 }
 
-/* City ticker: one slow loop, paused on hover, still under reduced motion. */
-.ticker-track {
-  animation: ticker 70s linear infinite;
-}
-
-.ticker:hover .ticker-track {
-  animation-play-state: paused;
-}
-
-@keyframes ticker {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 .spectrum-dot {
   transition:
     left 900ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -336,10 +321,6 @@ select optgroup {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ticker-track {
-    animation: none;
-  }
-
   .spectrum-dot,
   .field-label,
   .btn-ink,
