@@ -315,7 +315,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[var(--page)]">
       <header className="app-header relative z-40 sm:sticky sm:top-0 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--page)_84%,transparent)] backdrop-blur-md">
-        <div className="landing-container flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-3">
+        <div className="landing-container flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
           <a href="#" className="flex min-w-0 items-center gap-3 no-underline" aria-label="Take-Home Savings Calculator, home">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--ink)] text-white">
               <Landmark className="size-[18px]" />
@@ -334,46 +334,32 @@ export default function App() {
             </span>
           </a>
 
-          <nav
-            className="order-3 flex w-full gap-1 rounded-xl border bg-[var(--surface-2)] p-1 sm:order-none sm:w-auto"
-            style={{ borderColor: 'var(--border)' }}
-            aria-label="Calculator sections"
-          >
-            <a
-              href="#"
-              className="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium transition-colors sm:flex-none"
-              style={{
-                background:
-                  view === 'calculator' ? 'var(--surface-raised)' : 'transparent',
-                color:
-                  view === 'calculator'
-                    ? 'var(--text-primary)'
-                    : 'var(--text-secondary)',
-              }}
-            >
-              Calculator
-            </a>
-            <a
-              href="#projection"
-              className="flex-1 rounded-lg px-3 py-1.5 text-center text-xs font-medium transition-colors sm:flex-none"
-              style={{
-                background:
-                  view === 'projection' ? 'var(--surface-raised)' : 'transparent',
-                color:
-                  view === 'projection'
-                    ? 'var(--text-primary)'
-                    : 'var(--text-secondary)',
-              }}
-            >
-              Projection
-            </a>
-          </nav>
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start sm:gap-6">
+            <nav aria-label="Views" className="flex items-center gap-4 sm:gap-6">
+              {(
+                [
+                  ['calculator', '#', 'Calculator'],
+                  ['projection', '#projection', 'Projection'],
+                ] as const
+              ).map(([key, href, label]) => (
+                <a
+                  key={key}
+                  href={href}
+                  aria-current={view === key ? 'page' : undefined}
+                  className="nav-link"
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+            <span aria-hidden className="hidden h-4 w-px bg-[var(--line)] sm:block" />
 
-          <HeaderActions
-            onCopySummary={copySummary}
-            onDownloadCsv={exportCsv}
-            onResetAll={resetAll}
-          />
+            <HeaderActions
+              onCopySummary={copySummary}
+              onDownloadCsv={exportCsv}
+              onResetAll={resetAll}
+            />
+          </div>
         </div>
       </header>
 
