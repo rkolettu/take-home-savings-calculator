@@ -31,14 +31,6 @@
   --accent: #1d4ed8;
   --accent-soft: #dce6fb;
 
-  /* Particle pipeline streams — mirrored in pipeline/pipelineTheme.ts. Ink
-     and one blue, as on rishabkolettu.vercel.app; the app's existing warm
-     data colour marks living costs so it can't be read as savings. */
-  --flow-gross: #171717;
-  --flow-tax: #8d8880;
-  --flow-cost: #d96b3b;
-  --flow-save: #1d4ed8;
-
   --status-good: #16835f;
   --status-warning: #b77910;
   --status-serious: #c8643f;
@@ -47,11 +39,6 @@
   --shadow-soft: 0 1px 2px rgba(23, 23, 23, 0.04), 0 6px 18px rgba(23, 23, 23, 0.035);
   --shadow-raised: 0 2px 4px rgba(23, 23, 23, 0.05), 0 12px 28px rgba(23, 23, 23, 0.07);
   --shadow-popover: 0 10px 32px rgba(23, 23, 23, 0.14), 0 2px 8px rgba(23, 23, 23, 0.07);
-}
-
-@theme {
-  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -69,7 +56,8 @@ body {
     radial-gradient(circle at top right, rgba(29, 78, 216, 0.06), transparent 30%),
     var(--page);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -77,14 +65,6 @@ body {
 
 ::selection {
   background: rgba(29, 78, 216, 0.16);
-}
-
-/* Static stand-in painted under the WebGL layer: it is what shows before
-   three.js has loaded and what stays on devices without WebGL. */
-.pipeline-backdrop {
-  background:
-    radial-gradient(circle at 78% 50%, rgba(29, 78, 216, 0.1), transparent 16%),
-    radial-gradient(ellipse 36% 6% at 42% 50%, rgba(23, 23, 23, 0.06), transparent 70%);
 }
 
 button,
@@ -141,7 +121,7 @@ nav[aria-label="Calculator sections"] a[style*="surface-raised"] {
   box-shadow: var(--shadow-soft);
 }
 
-aside a[href="#projection"] {
+aside > a[href="#projection"] {
   box-shadow: var(--shadow-soft);
   transition:
     transform 160ms ease,
@@ -149,7 +129,7 @@ aside a[href="#projection"] {
     border-color 160ms ease;
 }
 
-aside a[href="#projection"]:hover {
+aside > a[href="#projection"]:hover {
   box-shadow: var(--shadow-raised);
   border-color: var(--baseline) !important;
 }
@@ -167,16 +147,6 @@ input[type="range"] {
   background: transparent;
   cursor: pointer;
   accent-color: var(--accent);
-}
-
-/* The thumb carries the focus ring (below); the box outline would frame the
-   whole track. */
-input[type="range"]:focus-visible {
-  outline: none;
-}
-
-input[type="range"]:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.14), 0 1px 3px rgba(23, 23, 23, 0.18);
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
