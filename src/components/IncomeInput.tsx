@@ -59,7 +59,7 @@ export function IncomeInput({
             onChange={(e) => onGrossChange(parseCurrency(e.target.value))}
             className="w-full bg-transparent px-1.5 py-2.5 text-sm font-medium tabular-nums text-[var(--text-primary)] focus:outline-none"
           />
-          <span className="shrink-0 whitespace-nowrap text-xs text-[var(--text-muted)]">/ year</span>
+          <span className="text-xs text-[var(--text-muted)]">/ year</span>
         </div>
         <input
           type="range"
