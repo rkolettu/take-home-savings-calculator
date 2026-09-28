@@ -64,14 +64,14 @@ export function CitySpectrum({ model }: { model: LandingModel }) {
 
   return (
     <section
-      data-chapter="02"
+      data-chapter="03"
       data-chapter-name="45 cities"
       aria-labelledby="spectrum-heading"
       className="border-t border-[var(--line)] py-24 sm:py-32"
     >
       <div className="landing-container">
         <div className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
-          02 · Same salary, 45 cities
+          03 · Same salary, 45 cities
         </div>
         <h2
           id="spectrum-heading"
