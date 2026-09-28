@@ -1,5 +1,7 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { MotionConfig } from 'motion/react'
+import '@fontsource-variable/inter'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import './index.css'
@@ -38,7 +40,7 @@ function Root() {
   const onProjection = hash === '#projection'
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <App />
       <DataFreshness />
       {!onProjection && showCompare && (
@@ -46,7 +48,7 @@ function Root() {
       )}
       <Analytics />
       <SpeedInsights />
-    </>
+    </MotionConfig>
   )
 }
 

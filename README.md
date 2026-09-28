@@ -36,6 +36,9 @@ network call — your inputs never leave the page.
 | Build | Vite 8 (Rolldown) |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`, CSS-first config) |
 | Charts | Recharts |
+| 3D hero | three.js + `@react-three/fiber` + `@react-three/drei` (lazy-loaded) |
+| Motion | Motion (Framer Motion) — scroll reveals, springs, parallax |
+| Type | Inter Variable, self-hosted via `@fontsource-variable/inter` |
 | Icons | lucide-react |
 | Tests | Vitest |
 | Lint | oxlint |
