@@ -53,16 +53,16 @@ export function Hero({ model, storyId }: { model: LandingModel; storyId: string 
 
           <motion.div {...fade(0.7)} className="flex flex-col">
             <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={model.onOpenCalculator} className="btn-ink">
+                Open the full calculator
+                <ArrowDown className="size-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => document.getElementById(storyId)?.scrollIntoView({ behavior: 'smooth' })}
-                className="btn-ink"
+                className="btn-line"
               >
                 See where it goes
-                <ArrowDown className="size-4" />
-              </button>
-              <button type="button" onClick={model.onOpenCalculator} className="btn-line">
-                Open the calculator
                 <ArrowRight className="size-4" />
               </button>
             </div>

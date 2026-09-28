@@ -74,7 +74,7 @@ export function PaycheckStory({ model, id }: { model: LandingModel; id: string }
     },
     {
       title: <>Everything else takes <Num v={living.amount} />.</>,
-      body: `Utilities ${usd(costs.utilities)}, groceries ${usd(costs.groceries)}, transport ${usd(costs.transport)} and discretionary spending ${usd(costs.discretionary)} — per-metro planning benchmarks you can edit below.`,
+      body: `Utilities ${usd(costs.utilities)}, groceries ${usd(costs.groceries)}, transport ${usd(costs.transport)} and discretionary spending ${usd(costs.discretionary)} — per-metro planning benchmarks you can edit in the calculator above.`,
     },
     paycheck.shortfall > 0
       ? {
@@ -91,7 +91,7 @@ export function PaycheckStory({ model, id }: { model: LandingModel; id: string }
     <section
       ref={ref}
       id={id}
-      data-chapter="01"
+      data-chapter="02"
       data-chapter-name="Where it goes"
       aria-label="Where one paycheck goes"
       className="relative scroll-mt-0 border-t border-[var(--line)]"
@@ -101,7 +101,7 @@ export function PaycheckStory({ model, id }: { model: LandingModel; id: string }
         <div className="landing-container flex flex-1 flex-col justify-center pb-8 pt-8 sm:pt-20 lg:pb-12 lg:pt-24">
           <div className="flex items-center justify-between gap-6">
             <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
-              01 · Follow one paycheck
+              02 · Follow one paycheck
             </span>
             <ol className="hidden items-center gap-5 md:flex" aria-label="Steps">
               {STEPS.map((s, i) => (

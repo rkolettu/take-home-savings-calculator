@@ -39,33 +39,33 @@ function Word({ children, progress, range }: { children: string; progress: Motio
   )
 }
 
-/** Hand-off from the story to the full calculator. */
-export function WorkbenchIntro() {
+/** Heading for the full calculator, which follows straight after the hero. */
+export function CalculatorIntro() {
   return (
-    <section data-chapter="04" data-chapter-name="Run the numbers" className="border-t border-[var(--line)] pb-10 pt-24 sm:pt-32">
+    <section data-chapter="01" data-chapter-name="The calculator" className="border-t border-[var(--line)] pb-8 pt-16 sm:pt-20">
       <div className="landing-container">
         <div className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
-          04 · The workbench
+          01 · The calculator
         </div>
-        <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
-          <h2 className="text-[40px] font-bold leading-[0.98] tracking-[-0.05em] text-[var(--ink)] sm:text-[64px] lg:text-[76px]">
-            <MaskedWords text="Now run it for real." inView />
-          </h2>
-          <Reveal className="lg:pb-3">
-            <p className="max-w-md text-base leading-7 text-[var(--ink-2)]">
-              Everything above is live in the calculator below. Change your filing status, edit any cost
-              line, compare metros side by side, or project decades ahead with raises, moves and milestones.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button type="button" className="btn-line" onClick={() => window.dispatchEvent(new Event('open-compare'))}>
-                <ArrowLeftRight className="size-4" />
-                Compare metros
-              </button>
-              <a href="#projection" className="btn-line">
-                <ChartSpline className="size-4" />
-                Build a projection
-              </a>
-            </div>
+        <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">
+          <div>
+            <h2 className="text-[40px] font-bold leading-[0.98] tracking-[-0.05em] text-[var(--ink)] sm:text-[56px] lg:text-[64px]">
+              <MaskedWords text="Run your numbers." inView />
+            </h2>
+            <Reveal className="mt-4 max-w-xl text-base leading-7 text-[var(--ink-2)]" y={16}>
+              Every figure above comes from here. Change your filing status, edit any cost line, compare
+              metros side by side, or project decades ahead with raises, moves and milestones.
+            </Reveal>
+          </div>
+          <Reveal className="flex flex-wrap gap-3 lg:pb-1" y={16}>
+            <button type="button" className="btn-line" onClick={() => window.dispatchEvent(new Event('open-compare'))}>
+              <ArrowLeftRight className="size-4" />
+              Compare metros
+            </button>
+            <a href="#projection" className="btn-line">
+              <ChartSpline className="size-4" />
+              Build a projection
+            </a>
           </Reveal>
         </div>
       </div>

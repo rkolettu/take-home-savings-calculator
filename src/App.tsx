@@ -397,117 +397,119 @@ export default function App() {
             onHousingTierChange: selectHousingTier,
             onOpenCalculator: openCalculator,
           }}
-        />
-        <main
-          id="calculator"
-          className="landing-container scroll-mt-24 space-y-6 py-6"
-        >
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="space-y-6">
-              <Card
-                title="Location & income"
-                subtitle="Pick a metro and enter what you earn before tax"
-              >
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <MetroSelector metroId={metroId} onChange={selectMetro} />
-                  <div className="sm:col-span-2">
-                    <IncomeInput
-                      gross={gross}
-                      filingStatus={filingStatus}
-                      onGrossChange={setGross}
-                      onFilingStatusChange={setFilingStatus}
+          calculator={
+            <main
+              id="calculator"
+              className="landing-container scroll-mt-24 space-y-6 pb-24 pt-2"
+            >
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="space-y-6">
+                  <Card
+                    title="Location & income"
+                    subtitle="Pick a metro and enter what you earn before tax"
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <MetroSelector metroId={metroId} onChange={selectMetro} />
+                      <div className="sm:col-span-2">
+                        <IncomeInput
+                          gross={gross}
+                          filingStatus={filingStatus}
+                          onGrossChange={setGross}
+                          onFilingStatusChange={setFilingStatus}
+                        />
+                      </div>
+                    </div>
+                  </Card>
+
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <StatTile
+                      label="Gross monthly"
+                      value={usd(gross / 12)}
+                      detail={`${usd(gross)} / yr`}
+                      icon={<Wallet className="size-3.5" />}
+                    />
+                    <StatTile
+                      label="Net monthly"
+                      value={usd(takeHome.netMonthly)}
+                      detail={`${usd(takeHome.net)} / yr`}
+                      icon={<Wallet className="size-3.5" />}
+                      emphasis
+                    />
+                    <StatTile
+                      label="Effective rate"
+                      value={percent(takeHome.effectiveRate)}
+                      detail="All taxes ÷ gross"
+                      icon={<Percent className="size-3.5" />}
+                    />
+                    <StatTile
+                      label="Federal marginal"
+                      value={percent(takeHome.federalMarginalRate, 0)}
+                      detail="On your next dollar"
+                      icon={<TrendingUp className="size-3.5" />}
                     />
                   </div>
-                </div>
-              </Card>
 
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <StatTile
-                  label="Gross monthly"
-                  value={usd(gross / 12)}
-                  detail={`${usd(gross)} / yr`}
-                  icon={<Wallet className="size-3.5" />}
-                />
-                <StatTile
-                  label="Net monthly"
-                  value={usd(takeHome.netMonthly)}
-                  detail={`${usd(takeHome.net)} / yr`}
-                  icon={<Wallet className="size-3.5" />}
-                  emphasis
-                />
-                <StatTile
-                  label="Effective rate"
-                  value={percent(takeHome.effectiveRate)}
-                  detail="All taxes ÷ gross"
-                  icon={<Percent className="size-3.5" />}
-                />
-                <StatTile
-                  label="Federal marginal"
-                  value={percent(takeHome.federalMarginalRate, 0)}
-                  detail="On your next dollar"
-                  icon={<TrendingUp className="size-3.5" />}
-                />
+                  <Card>
+                    <TaxBreakdown takeHome={takeHome} metro={metro} />
+                  </Card>
+
+                  <Card
+                    title="Monthly cost of living"
+                    subtitle={`Seeded from ${metro.city} benchmarks — edit any line`}
+                    action={
+                      isModified ? (
+                        <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]">
+                          Edited
+                        </span>
+                      ) : undefined
+                    }
+                  >
+                    <CostOfLivingPanel
+                      costs={costs}
+                      metro={metro}
+                      housingTier={housingTier}
+                      isModified={isModified}
+                      onCostChange={updateCost}
+                      onHousingTierChange={selectHousingTier}
+                      onReset={resetCosts}
+                    />
+                  </Card>
+                </div>
+
+                <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+                  <Card title="What's left over">
+                    <SurplusSummary
+                      netMonthly={takeHome.netMonthly}
+                      monthlyCost={monthlyCost}
+                      surplus={surplus}
+                      rate={rate}
+                    />
+                  </Card>
+
+                  <a
+                    href="#projection"
+                    className="block rounded-xl border bg-[var(--surface-1)] p-5 text-decoration-none transition-transform hover:-translate-y-0.5"
+                    style={{ borderColor: 'var(--border)' }}
+                  >
+                    <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                      Next step
+                    </div>
+                    <div className="mt-2 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+                      Build a long-term projection
+                    </div>
+                    <p className="mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">
+                      Model investing, wage growth, inflation, milestones, and how
+                      this monthly surplus compounds over time.
+                    </p>
+                    <div className="mt-4 text-sm font-semibold text-[var(--accent)]">
+                      Open projection →
+                    </div>
+                  </a>
+                </aside>
               </div>
-
-              <Card>
-                <TaxBreakdown takeHome={takeHome} metro={metro} />
-              </Card>
-
-              <Card
-                title="Monthly cost of living"
-                subtitle={`Seeded from ${metro.city} benchmarks — edit any line`}
-                action={
-                  isModified ? (
-                    <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]">
-                      Edited
-                    </span>
-                  ) : undefined
-                }
-              >
-                <CostOfLivingPanel
-                  costs={costs}
-                  metro={metro}
-                  housingTier={housingTier}
-                  isModified={isModified}
-                  onCostChange={updateCost}
-                  onHousingTierChange={selectHousingTier}
-                  onReset={resetCosts}
-                />
-              </Card>
-            </div>
-
-            <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-              <Card title="What's left over">
-                <SurplusSummary
-                  netMonthly={takeHome.netMonthly}
-                  monthlyCost={monthlyCost}
-                  surplus={surplus}
-                  rate={rate}
-                />
-              </Card>
-
-              <a
-                href="#projection"
-                className="block rounded-xl border bg-[var(--surface-1)] p-5 text-decoration-none transition-transform hover:-translate-y-0.5"
-                style={{ borderColor: 'var(--border)' }}
-              >
-                <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                  Next step
-                </div>
-                <div className="mt-2 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-                  Build a long-term projection
-                </div>
-                <p className="mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">
-                  Model investing, wage growth, inflation, milestones, and how
-                  this monthly surplus compounds over time.
-                </p>
-                <div className="mt-4 text-sm font-semibold text-[var(--accent)]">
-                  Open projection →
-                </div>
-              </a>
-            </aside>
-          </div>
-        </main>
+            </main>
+          }
+        />
         </>
       ) : (
         <main className="landing-container space-y-6 py-6">

@@ -71,14 +71,14 @@ export function WealthHorizon({ model }: { model: LandingModel }) {
 
   return (
     <section
-      data-chapter="03"
+      data-chapter="04"
       data-chapter-name="Over time"
       aria-labelledby="wealth-heading"
       className="border-t border-[var(--line)] bg-[var(--panel)] py-24 sm:py-32"
     >
       <div className="landing-container">
         <div className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
-          03 · Over time
+          04 · Over time
         </div>
         <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
           <h2
