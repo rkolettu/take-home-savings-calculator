@@ -1,12 +1,12 @@
 {
-  "dataUpdated": "September 2026",
+  "dataUpdated": "October 2026",
   "taxes": "2026 rules",
   "rentEstimates": "Aug 2026 asking-rent benchmarks",
   "inflationLabel": "Latest available in snapshot",
   "inflationRate": 0.034,
   "inflationPeriod": "July 2026",
   "inflationSource": "U.S. Bureau of Labor Statistics CPI-U, 12-month change",
-  "refreshedAt": "2026-09-21",
+  "refreshedAt": "2026-10-05",
   "rentSource": "Zumper median 1BR asking-rent anchors",
   "costModel": "Versioned planning benchmarks",
   "costIndexPeriod": "August 2026 benchmark snapshot"
